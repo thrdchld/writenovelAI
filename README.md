@@ -85,3 +85,29 @@ Saat memilih penulisan, program menggabungkan instruksi, dokumen inti novel, blu
 
 **Batasan yang perlu diketahui:** program Python ini tidak menghasilkan prosa dan tidak menjalankan model AI. Fungsinya mengelola status dan menyiapkan konteks. Status SELESAI hanya berarti file naskah bab ada dan tidak kosong, bukan berarti bab sudah lolos audit atau layak terbit. Penghapusan hanya menghapus file naskah bab, bukan blueprint.
 
+## Pengelola penulisan bab interaktif
+
+Jalankan dari folder utama repository:
+
+```bash
+python novel.py
+```
+
+Menu menyediakan status bab, penulisan satu bab, penulisan beberapa bab berurutan, rewrite dengan konfirmasi, dan penghapusan naskah dengan konfirmasi.
+
+Saat menulis, Python mengumpulkan dokumen inti, blueprint bab, bab sebelumnya, dan catatan kontinuitas. Python menyimpan prompt di folder workbench, lalu menjalankan Antigravity CLI melalui mode headless:
+
+```bash
+agy -p "prompt bab" --output-format json
+```
+
+Untuk batch, setiap bab dijalankan sebagai satu proses AGY tersendiri. Bab berikutnya baru dimulai setelah proses sebelumnya selesai dan file naskahnya terdeteksi. Jika AGY mengembalikan error atau indikasi quota/rate limit, batch dihentikan; bab yang sudah selesai tidak diulang otomatis. Bab yang sudah ada akan ditawarkan untuk rewrite atau dilewati. Penghapusan hanya menghapus file naskah, bukan blueprint atau state update.
+
+Setiap prompt juga meminta AGY membuat state update faktual agar dapat dipakai sebagai konteks bab selanjutnya. Program akan memberi peringatan jika file state update tidak dibuat.
+
+**Syarat dan batasan:**
+- Antigravity CLI harus terpasang, sudah terautentikasi, dan perintah `agy` dapat dipanggil dari terminal.
+- Mode headless menggunakan kredensial yang sudah tersimpan. Hak akses penulisan file mengikuti konfigurasi permission Antigravity CLI. Jika tool penulisan ditolak, program akan mendeteksi bahwa file naskah tidak muncul dan menghentikan batch.
+- Deteksi limit menggunakan kode keluar dan kata kunci pesan error. Pesan limit yang tidak menyebut pola umum mungkin terbaca sebagai error biasa, tetapi batch tetap dihentikan.
+- Status SELESAI hanya berarti file naskah ada dan tidak kosong, bukan berarti bab sudah lolos audit atau layak terbit.
+
