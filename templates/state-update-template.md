@@ -1,40 +1,43 @@
-# State Update — Bab [Nomor]
+# State Update — Bab <001>
 
-## 1. Fakta cerita baru
-- [Fakta yang benar-benar terjadi atau terungkap]
+- **Status bab:** DRAFT / NEEDS_REPAIR / ACCEPTED
+- **Tanggal pembaruan:**
 
-## 2. Pengetahuan karakter
-| Tokoh | Informasi yang diketahui | Sumber | Kapan diketahui | Yang belum diketahui |
+## Fakta baru (KANON)
+
+- <Hanya yang benar-benar terjadi dalam naskah>
+
+## Pengetahuan karakter
+
+| Tokoh | Informasi yang diketahui | Sumber | Kapan diperoleh | Tingkat keyakinan |
 |---|---|---|---|---|
-| [Nama] | [Informasi] | [Sumber] | [Waktu] | [Batas pengetahuan] |
+| | | | | |
 
-## 3. Pengetahuan pembaca
-- Informasi yang sudah diketahui pembaca:
+## Pengetahuan pembaca
+
+- Informasi baru:
 - Informasi yang masih ditahan:
-- Dugaan yang mungkin dibentuk pembaca (bukan fakta kanon):
+- Dugaan yang mungkin terbentuk:
 
-## 4. Story State
+## Story state
+
 - Lokasi tokoh:
-- Benda/dokumen/pesan penting dan lokasinya:
-- Status konflik:
-- Status hubungan:
-- Pekerjaan/janji/komitmen yang masih berjalan:
+- Benda/dokumen penting:
+- Kondisi hubungan:
+- Konflik aktif:
+- Janji/komitmen:
 
-## 5. Perubahan karakter
-- Pola atau kebiasaan yang tampak:
-- Pemicu:
-- Respons:
+## Character behavior
+
+- Pola yang terlihat:
+- Respons/pilihan baru:
 - Konsekuensi:
-- Perubahan/perilaku baru yang dicoba:
+- Perubahan yang belum boleh dianggap permanen:
 
-## 6. Pertanyaan terbuka
-- [Pertanyaan yang sengaja belum dijawab]
+## Pertanyaan terbuka
 
-## 7. Risiko/anomali untuk bab berikutnya
-- [Hal yang perlu diperiksa, bukan otomatis kesalahan]
+- <Hal yang belum diketahui>
 
-## 8. Pembaruan catatan lintas bab
-- Timeline berubah? [Ya/Tidak, jelaskan]
-- Character Knowledge berubah? [Ya/Tidak, jelaskan]
-- Story State berubah? [Ya/Tidak, jelaskan]
-- Character Behavior berubah? [Ya/Tidak, jelaskan]
+## Anomali dan risiko
+
+- <Temuan yang perlu diperiksa, jika ada>
