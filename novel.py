@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Menu sederhana pengelola bab untuk repository writenovelAI."""
+"""Pengelola penulisan novel: siapkan konteks lalu jalankan Antigravity CLI."""
 from pathlib import Path
+import json
 import re
+import shutil
+import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parent
 STORIES_DIR = ROOT / "stories"
 CORE_FILES = ["00-premise.md", "01-concept.md", "02-characters.md",
               "03-world-and-rules.md", "04-story-outline.md", "05-decision-log.md"]
+LIMIT_HINTS = ("quota", "rate limit", "rate_limit", "resource_exhausted", "429",
+               "usage limit", "daily limit", "limit exceeded", "capacity",
+               "exhausted", "billing", "too many requests", "insufficient quota")
 
 
 def read_text(path):
@@ -32,7 +38,7 @@ def get_blueprints(story):
         number = chapter_number(path)
         if number is not None and "-to-" not in path.stem:
             result[number] = read_text(path)
-    # Dukung blueprint gabungan, misalnya chapter-007-to-030.md.
+    # Mendukung dokumen gabungan seperti chapter-007-to-030.md.
     for path in sorted(folder.glob("chapter-*-to-*.md")):
         content = read_text(path)
         matches = list(re.finditer(r"(?m)^##\s*Bab\s+(\d+)\s*[—–-].*$", content, re.I))
@@ -47,8 +53,7 @@ def get_blueprints(story):
 def get_numbers(story):
     numbers = set(get_blueprints(story))
     outline = read_text(story / "04-story-outline.md")
-    numbers.update(int(m.group(1)) for m in
-                   re.finditer(r"(?mi)^#{1,4}\s*Bab\s+(\d+)\b", outline))
+    numbers.update(int(m.group(1)) for m in re.finditer(r"(?mi)^#{1,4}\s*Bab\s+(\d+)\b", outline))
     manuscript = story / "manuscript"
     if manuscript.is_dir():
         for path in manuscript.glob("chapter-*.md"):
@@ -60,6 +65,15 @@ def get_numbers(story):
 
 def manuscript_path(story, number):
     return story / "manuscript" / f"chapter-{number:03d}.md"
+
+
+def state_path(story, number):
+    return story / "state-updates" / f"chapter-{number:03d}.md"
+
+
+def is_written(story, number):
+    path = manuscript_path(story, number)
+    return path.is_file() and bool(read_text(path))
 
 
 def title_for(story, number):
@@ -76,33 +90,39 @@ def title_for(story, number):
 def show_status(story):
     numbers = get_numbers(story)
     print(f"\nNOVEL: {story.name}")
-    print("-" * 56)
+    print("-" * 64)
     if not numbers:
         print("Belum ditemukan outline atau blueprint bab.")
         return
     done = 0
     for n in numbers:
-        path = manuscript_path(story, n)
-        exists = path.is_file() and bool(read_text(path))
-        done += int(exists)
-        label = "SELESAI" if exists else "BELUM"
+        written = is_written(story, n)
+        done += int(written)
         title = title_for(story, n)
-        suffix = f" - {title}" if title else ""
-        print(f"Bab {n:02d} [{label}]{suffix}")
-    print("-" * 56)
-    print(f"Progress: {done}/{len(numbers)} bab ditulis")
+        suffix = f" | {title}" if title else ""
+        print(f"Bab {n:02d} [{'SUDAH DITULIS' if written else 'BELUM DITULIS'}]{suffix}")
+    print("-" * 64)
+    print(f"Progress file naskah: {done}/{len(numbers)} bab")
+    print("Status ini memeriksa keberadaan file, bukan kelulusan audit.")
 
 
-def choose_number(story, prompt):
-    numbers = get_numbers(story)
-    if not numbers:
-        print("Tidak ada daftar bab.")
+def parse_selection(raw, available):
+    selected = set()
+    try:
+        for part in raw.replace(" ", "").split(","):
+            if not part:
+                raise ValueError
+            if "-" in part:
+                a, b = part.split("-", 1)
+                start, end = int(a), int(b)
+                if start > end:
+                    raise ValueError
+                selected.update(range(start, end + 1))
+            else:
+                selected.add(int(part))
+    except ValueError:
         return None
-    raw = input(prompt).strip()
-    if not raw.isdigit() or int(raw) not in numbers:
-        print("Nomor bab tidak ditemukan.")
-        return None
-    return int(raw)
+    return sorted(selected) if selected and selected.issubset(set(available)) else None
 
 
 def collect_context(story, number):
@@ -112,17 +132,13 @@ def collect_context(story, number):
     for path in candidates:
         content = read_text(path)
         if content:
-            try:
-                label = str(path.relative_to(ROOT))
-            except ValueError:
-                label = path.name
-            pieces.append((label, content))
+            pieces.append((str(path.relative_to(ROOT)), content))
 
     blueprint = get_blueprints(story).get(number, "")
     if blueprint:
         pieces.append((f"blueprint Bab {number}", blueprint))
     else:
-        pieces.append(("PERINGATAN", "Blueprint bab ini tidak ditemukan. Gunakan outline dan jangan mengarang peristiwa inti."))
+        pieces.append(("PERINGATAN", "Blueprint bab ini tidak ditemukan. Gunakan outline dan laporkan kekurangan konteks; jangan mengarang peristiwa inti."))
 
     previous = manuscript_path(story, number - 1)
     if number > 1 and previous.is_file() and read_text(previous):
@@ -131,48 +147,152 @@ def collect_context(story, number):
     for folder_name in ("continuity", "state-updates"):
         folder = story / folder_name
         if folder.is_dir():
-            for path in sorted(folder.glob("*.md"))[-5:]:
-                if read_text(path):
-                    pieces.append((str(path.relative_to(ROOT)), read_text(path)))
+            for path in sorted(folder.glob("*.md"))[-8:]:
+                content = read_text(path)
+                if content:
+                    pieces.append((str(path.relative_to(ROOT)), content))
     return pieces
 
 
-def prepare_chapter(story, number):
-    target = manuscript_path(story, number)
-    if target.exists() and read_text(target):
-        answer = input("Naskah sudah ada. Siapkan instruksi REVISI? (y/t): ").strip().lower()
-        if answer != "y":
-            print("Dibatalkan. Naskah tidak diubah.")
-            return
-
-    pieces = collect_context(story, number)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    workbench = story / "workbench"
-    workbench.mkdir(parents=True, exist_ok=True)
-    output = workbench / f"write-chapter-{number:03d}.md"
-
+def build_prompt(story, number, pieces, target, state_target, rewrite):
+    action = "TULIS ULANG" if rewrite else "TULIS"
     sections = [
-        f"# Instruksi Penulisan Bab {number:03d}", "",
+        f"# {action} BAB {number:03d}", "",
         f"Proyek: {story.name}",
-        f"File tujuan: {target.relative_to(ROOT)}", "",
-        "## Tugas",
-        f"Tulis atau revisi hanya Bab {number}. Baca seluruh konteks di bawah sebelum menulis.",
-        "Ikuti blueprint untuk sebab-akibat, fakta, batas pengetahuan tokoh, dan perubahan bab.",
-        "Kembangkan menjadi prosa novel yang alami; jangan menyalin format blueprint menjadi narasi.",
-        "Jangan menambah twist, rahasia, bukti, tokoh penting, atau fakta kanon tanpa dasar.",
-        "Jaga kesinambungan dengan bab sebelumnya dan jangan mengulangnya sebagai ringkasan.",
-        "Simpan hasil akhir langsung ke file tujuan. Jangan mengubah bab lain atau dokumen rancangan.",
-        "Jika ada konflik dokumen yang memengaruhi inti cerita, laporkan dan jangan menebak.", "",
-        "## Konteks yang wajib dibaca"
+        f"File naskah tujuan: {target.relative_to(ROOT)}",
+        f"File state update tujuan: {state_target.relative_to(ROOT)}", "",
+        "## Tugas utama",
+        f"Tulis prosa lengkap Bab {number} berdasarkan blueprint dan konteks di bawah.",
+        "Baca seluruh sumber sebelum mulai menulis.",
+        "Blueprint mengendalikan fungsi bab, urutan peristiwa, sebab-akibat, fakta, batas pengetahuan tokoh, dan perubahan di akhir bab.",
+        "Tulis sebagai novel yang enak dibaca, bukan parafrasa atau daftar ulang blueprint.",
+        "Gunakan paragraf normal. Hindari bahasa puitis yang dipaksakan, dialog penjelas, repetisi, dan cliffhanger buatan.",
+        "Jangan menambah tokoh penting, rahasia, bukti, twist, atau fakta kanon tanpa dasar.",
+        "Jangan mengubah bab lain, outline, blueprint, atau keputusan cerita.", "",
+        "## Setelah menulis",
+        f"Simpan naskah lengkap ke {target.relative_to(ROOT)}.",
+        f"Buat state update faktual ke {state_target.relative_to(ROOT)}.",
+        "State update hanya mencatat hal yang benar-benar terjadi dalam naskah: perubahan keadaan tokoh, waktu/lokasi, pengetahuan tiap tokoh, fakta baru, benda/dokumen penting, perubahan hubungan, dan pertanyaan terbuka.",
+        "Jangan mengisi state update berdasarkan rencana blueprint jika peristiwa itu tidak muncul dalam naskah.",
+        "Jangan menyatakan bab lolos audit. Laporkan file yang dibuat dan kendala jika ada.",
+        "Jika ada konflik dokumen yang menghalangi penulisan inti bab, jangan menebak atau mengubah kanon; laporkan konflik tersebut.", "",
+        "## Konteks wajib dibaca"
     ]
     for label, content in pieces:
         sections.extend(["", f"### Sumber: {label}", "", content])
-    output.write_text("\n".join(sections).rstrip() + "\n", encoding="utf-8")
+    return "\n".join(sections).rstrip() + "\n"
 
-    print(f"\nInstruksi siap: {output.relative_to(ROOT)}")
-    print("\nDi Antigravity, minta:")
-    print(f'Baca "{output.relative_to(ROOT)}", ikuti instruksinya, lalu tulis bab ke file tujuan yang tercantum di dalamnya.')
-    print("Catatan: Python menyiapkan konteks; Antigravity tetap yang menulis naskah.")
+
+def detect_limit(message):
+    lowered = message.lower()
+    return any(hint in lowered for hint in LIMIT_HINTS)
+
+
+def run_agy(prompt):
+    executable = shutil.which("agy")
+    if not executable:
+        print("\nERROR: perintah agy tidak ditemukan di PATH.")
+        print("Pastikan Antigravity CLI terpasang dan bisa dijalankan dari Termux.")
+        return "missing"
+
+    print("\nAntigravity sedang menulis. Tunggu sampai proses selesai...")
+    try:
+        process = subprocess.Popen(
+            [executable, "-p", prompt, "--output-format", "json"],
+            cwd=str(ROOT), stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            text=True, encoding="utf-8", errors="replace"
+        )
+        stdout, stderr = process.communicate()
+    except OSError as error:
+        print(f"\nGagal menjalankan agy: {error}")
+        return "error"
+
+    data = None
+    try:
+        data = json.loads(stdout.strip()) if stdout.strip() else None
+    except json.JSONDecodeError:
+        pass
+
+    status = str(data.get("status", "")).upper() if isinstance(data, dict) else ""
+    error_text = str(data.get("error") or "") if isinstance(data, dict) else ""
+    combined = "\n".join(x for x in (error_text, stderr, stdout) if x)
+
+    if process.returncode != 0 or status == "ERROR":
+        if detect_limit(combined):
+            print("\nPERINGATAN: BATAS PENGGUNAAN AGY TERDETEKSI.")
+            print("Proses multi-bab dihentikan. Bab yang sudah selesai tetap tersimpan.")
+            print("Coba lagi setelah limit pulih; bab berikutnya belum dijalankan.")
+        else:
+            print("\nAGY GAGAL MENYELESAIKAN TUGAS.")
+        if error_text:
+            print(error_text)
+        if stderr.strip():
+            print(stderr.strip()[-5000:])
+        if not error_text and not stderr.strip() and stdout.strip():
+            print(stdout.strip()[-5000:])
+        return "limit" if detect_limit(combined) else "error"
+
+    if status and status not in ("SUCCESS", "COMPLETED"):
+        print(f"\nStatus AGY tidak dikenali: {status}")
+        if stderr.strip():
+            print(stderr.strip()[-3000:])
+        return "error"
+
+    if stderr.strip():
+        print("\nPesan/peringatan AGY:")
+        print(stderr.strip()[-3000:])
+    return "success"
+
+
+def write_one(story, number):
+    target = manuscript_path(story, number)
+    state_target = state_path(story, number)
+    already_written = is_written(story, number)
+    rewrite = False
+
+    if already_written:
+        print(f"\nBab {number} sudah memiliki naskah.")
+        if input("Mau rewrite? (y = ya, lainnya = lewati): ").strip().lower() != "y":
+            print(f"Bab {number} dilewati.")
+            return "skipped"
+        rewrite = True
+
+    pieces = collect_context(story, number)
+    prompt = build_prompt(story, number, pieces, target, state_target, rewrite)
+    workbench = story / "workbench"
+    workbench.mkdir(parents=True, exist_ok=True)
+    prompt_file = workbench / f"write-chapter-{number:03d}.md"
+    prompt_file.write_text(prompt, encoding="utf-8")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    state_target.parent.mkdir(parents=True, exist_ok=True)
+
+    before_stat = target.stat() if target.exists() else None
+    result = run_agy(prompt)
+    if result != "success":
+        print(f"Prompt tetap tersimpan: {prompt_file.relative_to(ROOT)}")
+        return result
+
+    if not target.is_file() or not read_text(target):
+        print("\nAGY selesai, tetapi file naskah tidak ditemukan atau kosong.")
+        print("Kemungkinan tindakan tulis ditolak oleh permission CLI. Periksa konfigurasi izin AGY.")
+        print(f"Prompt tersimpan: {prompt_file.relative_to(ROOT)}")
+        return "not_written"
+
+    after_stat = target.stat()
+    if rewrite and before_stat and (
+        before_stat.st_mtime_ns == after_stat.st_mtime_ns and
+        before_stat.st_size == after_stat.st_size
+    ):
+        print("\nFile tidak berubah; rewrite belum bisa diverifikasi.")
+        print("Pastikan AGY benar-benar mengedit file naskah.")
+        return "not_written"
+
+    print(f"\nBab {number} berhasil ditulis: {target.relative_to(ROOT)}")
+    if state_target.is_file() and read_text(state_target):
+        print(f"State update dibuat: {state_target.relative_to(ROOT)}")
+    else:
+        print("PERINGATAN: state update belum dibuat. Kontinuitas bab berikutnya mungkin kurang lengkap.")
+    return "success"
 
 
 def delete_chapter(story, number):
@@ -180,10 +300,10 @@ def delete_chapter(story, number):
     if not target.is_file():
         print("Naskah bab ini belum ada.")
         return
-    print(f"File yang akan dihapus: {target.relative_to(ROOT)}")
+    print(f"\nFile yang akan dihapus: {target.relative_to(ROOT)}")
     if input("Ketik HAPUS untuk mengonfirmasi: ").strip() == "HAPUS":
         target.unlink()
-        print("Naskah bab dihapus.")
+        print("Naskah dihapus. Blueprint dan state update tidak ikut dihapus.")
     else:
         print("Dibatalkan. File tetap aman.")
 
@@ -205,33 +325,91 @@ def select_story():
     return None
 
 
+def choose_one(story):
+    available = get_numbers(story)
+    if not available:
+        print("Tidak ada daftar bab.")
+        return None
+    selected = parse_selection(input("Nomor bab: ").strip(), available)
+    if selected is None or len(selected) != 1:
+        print("Masukkan satu nomor bab yang tersedia.")
+        return None
+    return selected[0]
+
+
+def choose_many(story):
+    available = get_numbers(story)
+    if not available:
+        print("Tidak ada daftar bab.")
+        return None
+    print("Format pilihan: 1-5 atau 1,3,5-7")
+    selected = parse_selection(input("Bab yang mau ditulis: ").strip(), available)
+    if selected is None:
+        print("Pilihan tidak valid atau ada nomor bab yang tidak tersedia.")
+        return None
+    print("Urutan: " + ", ".join(str(n) for n in selected))
+    if input("Mulai penulisan berurutan? (y/t): ").strip().lower() != "y":
+        print("Dibatalkan.")
+        return None
+    return selected
+
+
+def write_many(story, numbers):
+    completed, skipped = [], []
+    for index, number in enumerate(numbers, 1):
+        print("\n" + "=" * 64)
+        print(f"PROSES BAB {number} ({index}/{len(numbers)})")
+        print("=" * 64)
+        result = write_one(story, number)
+        if result == "success":
+            completed.append(number)
+        elif result == "skipped":
+            skipped.append(number)
+        else:
+            print("\nPenulisan batch dihentikan. Bab berikutnya tidak dijalankan.")
+            if result == "limit":
+                print("Limit AGY tercapai. Jalankan batch lagi setelah limit pulih.")
+            break
+    print("\nRINGKASAN SESI")
+    print("Selesai:", ", ".join(map(str, completed)) if completed else "-")
+    print("Dilewati:", ", ".join(map(str, skipped)) if skipped else "-")
+    show_status(story)
+
+
 def main():
     story = select_story()
     if story is None:
         return
     while True:
-        print("\n" + "=" * 56)
+        print("\n" + "=" * 64)
         print(f" PENGELOLA NOVEL: {story.name}")
-        print("=" * 56)
+        print("=" * 64)
         print("1. Lihat status semua bab")
-        print("2. Siapkan penulisan / revisi bab")
-        print("3. Hapus naskah bab")
-        print("4. Ganti novel")
+        print("2. Tulis / rewrite satu bab")
+        print("3. Tulis beberapa bab berurutan")
+        print("4. Hapus naskah bab")
+        print("5. Ganti novel")
         print("0. Keluar")
         choice = input("\nPilih menu: ").strip()
+
         if choice == "1":
             show_status(story)
         elif choice == "2":
             show_status(story)
-            n = choose_number(story, "Nomor bab yang mau ditulis: ")
-            if n is not None:
-                prepare_chapter(story, n)
+            number = choose_one(story)
+            if number is not None:
+                write_one(story, number)
         elif choice == "3":
             show_status(story)
-            n = choose_number(story, "Nomor bab yang mau dihapus: ")
-            if n is not None:
-                delete_chapter(story, n)
+            numbers = choose_many(story)
+            if numbers:
+                write_many(story, numbers)
         elif choice == "4":
+            show_status(story)
+            number = choose_one(story)
+            if number is not None:
+                delete_chapter(story, number)
+        elif choice == "5":
             selected = select_story()
             if selected is not None:
                 story = selected
