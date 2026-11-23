@@ -65,3 +65,23 @@ GitHub menyimpan dan melacak pekerjaan; GitHub tidak dengan sendirinya menjalank
 ## Status
 
 Repository ini adalah knowledge base dan workspace dokumentasi. Metode sudah memiliki instruksi operasional, tetapi konsistensinya tetap harus dibuktikan melalui uji premis lintas genre, penulisan bab, dan audit/perbaikan.
+
+## Pengelola bab interaktif
+
+Untuk melihat status penulisan, menyiapkan konteks bab, atau menghapus naskah bab, jalankan dari folder utama repository:
+
+```bash
+python novel.py
+```
+
+Menu:
+1. Lihat status semua bab.
+2. Siapkan penulisan atau revisi bab yang dipilih.
+3. Hapus naskah bab yang dipilih (memerlukan konfirmasi).
+4. Ganti proyek novel.
+0. Keluar.
+
+Saat memilih penulisan, program menggabungkan instruksi, dokumen inti novel, blueprint bab, dan naskah bab sebelumnya (jika tersedia) ke file `stories/<slug>/workbench/write-chapter-NNN.md`. Setelah itu minta Antigravity membaca file tersebut dan menulis ke folder `manuscript/`.
+
+**Batasan yang perlu diketahui:** program Python ini tidak menghasilkan prosa dan tidak menjalankan model AI. Fungsinya mengelola status dan menyiapkan konteks. Status SELESAI hanya berarti file naskah bab ada dan tidak kosong, bukan berarti bab sudah lolos audit atau layak terbit. Penghapusan hanya menghapus file naskah bab, bukan blueprint.
+
