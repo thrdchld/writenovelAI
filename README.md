@@ -28,8 +28,17 @@ Premis → lembar dunia/karakter → kerangka makro → Scene Blueprint → audi
 - [Kontinuitas dan State Update](docs/03-continuity.md)
 - [Audit dan perbaikan minimal](docs/04-audit-and-repair.md)
 - [Standar penulisan prosa](docs/05-writing-standard.md)
-- [Contoh uji: Salah Kirim](examples/salah-kirim.md)
-- [Contoh uji: Arman dan Mira](examples/arman-mira.md)
+
+## Template siap pakai
+
+- [Template Scene Blueprint](templates/scene-blueprint-template.md)
+- [Template State Update](templates/state-update-template.md)
+- [Template laporan audit](templates/audit-report-template.md)
+
+## Contoh pengujian metode
+
+- [Salah Kirim: drama keseharian dan perubahan karakter](examples/salah-kirim.md)
+- [Arman dan Mira: misteri, in medias res, flashback, dan pengetahuan tokoh](examples/arman-mira.md)
 
 ## Batasan proyek
 
