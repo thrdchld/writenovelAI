@@ -5,10 +5,11 @@
 
 ## Fakta baru (KANON)
 - Pada 15 Oktober, Mira menemukan amplop cokelat di dalam tas lama Arman.
+- Arman sudah mengetahui amplop itu dan sebelumnya menyimpannya di tas lama.
 - Mira melihat nama yang dikenalnya pada dokumen di dalam amplop.
 - Mira menerima pesan dari nomor yang tidak tersimpan: “Jangan kasih Arman lihat surat itu.”
 - Mira menyimpan amplop di dalam kotak perkakas di lemari dapur.
-- Arman belum mengetahui keberadaan amplop atau tindakan Mira menyembunyikannya.
+- Arman belum tahu Mira telah menemukan dan memindahkan amplop tersebut.
 
 ## Pengetahuan karakter
 
@@ -16,7 +17,8 @@
 |---|---|---|---|---|
 | Mira | Ada amplop/dokumen di tas lama Arman; nama pada dokumen dikenalnya | Membuka tas lama dan membaca dokumen | 15 Oktober | Pasti |
 | Mira | Ada pihak yang melarang Arman melihat surat | Pesan dari nomor tidak tersimpan | 15 Oktober | Pasti menerima pesan; identitas dan motif pengirim tidak diketahui |
-| Arman | Belum tahu amplop ditemukan dan disembunyikan Mira | Belum ada sumber | Sampai akhir Bab 2 | Tidak tahu |
+| Arman | Amplop cokelat berada di tas lama yang sebelumnya ia gunakan untuk menyimpannya | Ia sendiri menyimpan amplop itu di sana; ditegaskan melalui tindakannya pada Bab 3 | Sebelum 16 Oktober | Pasti |
+| Arman | Mira telah menemukan dan memindahkan amplop | Belum ada sumber | Sampai akhir Bab 2 | Tidak tahu |
 
 ## Pengetahuan pembaca
 - Informasi baru: Mira menemukan dan menyembunyikan amplop; ia menerima pesan anonim.
@@ -40,8 +42,8 @@
 - Siapa nama pada dokumen?
 - Siapa pengirim pesan?
 - Mengapa pengirim tidak ingin Arman melihat surat?
-- Apa hubungan surat dengan foto yang ditemukan Arman?
+- Apa hubungan surat dengan foto?
 
 ## Anomali dan risiko
 - Detail tempat penyimpanan tas lama dan aktivitas membereskan kardus dikembangkan untuk kebutuhan adegan; belum menjadi fakta struktural yang harus dipertahankan di bab lain kecuali dirujuk kembali.
-- Tidak ada sumber yang memberi Arman pengetahuan tentang amplop pada akhir bab.
+- Pengetahuan Arman tentang amplop berasal dari fakta bahwa ia sendiri pernah menyimpannya di tas lama; Bab 3 harus memperlihatkan dasar ini secara wajar melalui dialog atau tindakan, bukan membuatnya seolah baru mengetahui keberadaan amplop.
