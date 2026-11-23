@@ -146,6 +146,7 @@ def prepare_chapter(story, number):
             return
 
     pieces = collect_context(story, number)
+    target.parent.mkdir(parents=True, exist_ok=True)
     workbench = story / "workbench"
     workbench.mkdir(parents=True, exist_ok=True)
     output = workbench / f"write-chapter-{number:03d}.md"
