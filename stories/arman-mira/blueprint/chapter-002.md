@@ -53,13 +53,14 @@
 
 ## Penutup bab
 - Keadaan Mira: Mengetahui keberadaan amplop dan sengaja menyembunyikannya.
+- Pengetahuan Arman: Arman sudah mengetahui amplop cokelat itu dan sebelumnya menyimpannya di tas lama. Ia belum tahu Mira menemukannya lalu memindahkannya ke kotak perkakas.
 - Perubahan konflik: Rahasia kini menjadi tindakan yang dilakukan Mira, bukan sekadar informasi yang ia temukan.
-- Fakta baru yang menjadi kanon: Amplop berada di kotak perkakas dalam lemari dapur; Arman belum mengetahui keberadaannya.
-- Pertanyaan yang dibawa ke depan: Apakah Arman akan menemukan bahwa amplop itu hilang?
+- Fakta baru yang menjadi kanon: Amplop berada di kotak perkakas dalam lemari dapur; Arman tidak mengetahui perpindahan itu.
+- Pertanyaan yang dibawa ke depan: Kapan Arman menyadari amplop itu tidak lagi berada di tas lama?
 - Hal yang tidak boleh disimpulkan pembaca: Pengirim pesan pasti orang tertentu; nama pada dokumen pasti berkaitan dengan anak perempuan di foto.
 
 ## Batasan
-- Tetap: Tanggal 15 Oktober; POV Mira; amplop cokelat dalam tas lama Arman; nama yang dikenali; pesan anonim dengan kalimat yang ditentukan; amplop disembunyikan di kotak perkakas dalam lemari dapur; Arman belum tahu.
+- Tetap: Tanggal 15 Oktober; POV Mira; amplop cokelat dalam tas lama Arman; nama yang dikenali; pesan anonim dengan kalimat yang ditentukan; amplop disembunyikan di kotak perkakas dalam lemari dapur.
 - Wajib terjadi: Penemuan → pengenalan nama → pesan anonim → penyembunyian amplop.
 - Ruang pengembangan: Detail keseharian dan dialog batin singkat yang tidak menjelaskan misteri.
 - Belum diputuskan: Identitas nama, isi lengkap surat, pengirim pesan, motif pengirim, hubungan surat dengan foto.
