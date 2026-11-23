@@ -56,6 +56,6 @@ Ponselnya masih berada di tangannya. Pesan itu belum dibalas.
 
 Ia membuka percakapan sekali lagi, membaca kalimat yang sama, lalu mengunci layar.
 
-Arman belum tahu tentang amplop itu.
+Arman belum tahu bahwa amplop yang semula ia simpan di tas lama itu kini berada di tempat lain.
 
 Untuk sementara, Mira memilih membiarkannya begitu.
