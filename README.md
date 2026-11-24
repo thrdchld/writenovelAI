@@ -74,7 +74,7 @@ Agar aktif, atur Repository Secret `NOVEL_AI_API_KEY` serta Repository Variables
 - `novel.py`: satu pintu masuk CLI.
 - `novel_engine/project.py`: penemuan proyek, pembacaan sumber, memori, dan paket konteks.
 - `novel_engine/audit.py`: pemeriksaan deterministik dan paket instruksi audit AI.
-- `novel_engine/cli.py`: antarmuka perintah.
+- `novel_engine/cli.py`: antarmuka perintah dan menu interaktif.\n- `novel_engine/agy.py`: adapter AGY berurutan.\n- `novel_engine/github_bot.py`: bot GitHub Issue untuk AI API.
 - `tests/`: uji fungsi inti.
 - `docs/`: metodologi dan kontrak kerja manusia/AI.
 
