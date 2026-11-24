@@ -4,7 +4,7 @@ Sistem kerja penulisan novel berbantuan AI. Python mengelola sumber cerita, memo
 
 ## Mulai
 
-Python 3.11+ direkomendasikan. Tidak ada dependensi pihak ketiga untuk mesin inti.
+Python 3.11+ direkomendasikan. Tidak ada dependensi pihak ketiga untuk mesin inti. Jalankan `python novel.py` untuk membuka menu interaktif, atau gunakan perintah langsung di bawah.
 
 ```bash
 python novel.py --story gang-yang-hilang-dari-peta status
