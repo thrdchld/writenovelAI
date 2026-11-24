@@ -466,6 +466,8 @@ def command_line():
     group.add_argument("--verify", type=int, metavar="BAB", help="Verifikasi file naskah dan State Update")
     parser.add_argument("--rewrite", action="store_true", help="Izinkan penyiapan konteks untuk rewrite bab yang sudah ada")
     args = parser.parse_args()
+    if args.rewrite and args.context is None:
+        parser.error("--rewrite hanya dapat digunakan bersama --context")
 
     if not (args.status or args.context is not None or args.verify is not None):
         interactive_main()
@@ -479,8 +481,6 @@ def command_line():
         return 0
     if args.context is not None:
         return prepare_context_file(story, args.context, args.rewrite)
-    if args.rewrite:
-        parser.error("--rewrite hanya dapat digunakan bersama --context")
     return verify_chapter(story, args.verify)
 
 
