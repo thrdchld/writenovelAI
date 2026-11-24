@@ -39,7 +39,7 @@ class EngineTests(unittest.TestCase):
         text = build_context(self.story, 1)
         self.assertNotIn("future secret", text)
 
-    def test_chapter_numbers(self):
+    def test_context_refuses_to_overwrite_orphan_state(self):\n        (self.story / "05-decision-log.md").write_text("Canon", encoding="utf-8")\n        (self.story / "state-updates/chapter-001.md").write_text("existing state", encoding="utf-8")\n        with self.assertRaises(FileExistsError):\n            build_context(self.story, 1)\n\n    def test_chapter_numbers(self):
         self.assertEqual(chapter_numbers(self.story), [1, 2])
 
 
