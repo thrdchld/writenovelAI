@@ -1,10 +1,21 @@
-from collections import Counter\nfrom .project import read, blueprints, outline_numbers, chapter_numbers, manuscript, state_update, chapter_no
+from collections import Counter
+import re
+from .project import read, blueprints, outline_numbers, chapter_numbers, manuscript, state_update
 
 
 def deterministic_audit(story):
     outline = outline_numbers(story)
     bp = blueprints(story)
     findings = []
+    rows = []
+    for line in read(story / "04-story-outline.md").splitlines():
+        match = re.match(r"^\|\s*(\d+)\s*\|", line)
+        if match:
+            rows.append(int(match.group(1)))
+    for number, count in Counter(rows).items():
+        if count > 1:
+            findings.append(("HIGH", "DUPLICATE_OUTLINE_NUMBER",
+                             f"Nomor Bab {number} muncul {count} kali di tabel outline."))
     if not (story / "04-story-outline.md").is_file():
         findings.append(("CRITICAL", "OUTLINE_MISSING", "04-story-outline.md tidak ditemukan."))
     for n in sorted(outline - set(bp)):
