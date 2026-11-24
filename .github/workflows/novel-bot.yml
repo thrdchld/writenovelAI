@@ -1,0 +1,34 @@
+name: Novelbot issue commands
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: novelbot-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  command:
+    if: github.event.issue.pull_request == null && github.event.comment.user.login == github.repository_owner
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run Novelbot
+        env:
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NOVEL_AI_API_KEY: ${{ secrets.NOVEL_AI_API_KEY }}
+          NOVEL_AI_BASE_URL: ${{ vars.NOVEL_AI_BASE_URL }}
+          NOVEL_AI_MODEL: ${{ vars.NOVEL_AI_MODEL }}
+        run: python -m novel_engine.github_bot
