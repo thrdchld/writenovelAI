@@ -126,30 +126,174 @@ def build_memory(story, before_chapter=None):
     return "\n".join(sections).strip()
 
 
-def extract_blueprint_boundaries(blueprint_text):
-    """Extract character knowledge, reader knowledge, and withheld information from blueprint."""
-    char_knowledge = []
-    reader_knowledge = []
-    withheld_info = []
-    present_chars = []
-    for line in blueprint_text.splitlines():
-        line_clean = line.strip()
-        if re.search(r"\bTokoh hadir\b", line_clean, re.I):
-            val = re.sub(r"^[-*]\s*(\*\*)?Tokoh hadir:?(\*\*)?\s*", "", line_clean, flags=re.I)
-            present_chars.extend([c.strip() for c in re.split(r"[,;]", val) if c.strip()])
-        elif re.search(r"\bYang diketahui tokoh\b", line_clean, re.I):
-            char_knowledge.append(re.sub(r"^[-*]\s*(\*\*)?Yang diketahui tokoh:?(\*\*)?\s*", "", line_clean, flags=re.I))
-        elif re.search(r"\bYang diketahui pembaca\b", line_clean, re.I):
-            reader_knowledge.append(re.sub(r"^[-*]\s*(\*\*)?Yang diketahui pembaca:?(\*\*)?\s*", "", line_clean, flags=re.I))
-        elif re.search(r"\bInformasi yang ditahan\b", line_clean, re.I):
-            withheld_info.append(re.sub(r"^[-*]\s*(\*\*)?Informasi yang ditahan:?(\*\*)?\s*", "", line_clean, flags=re.I))
-        elif re.search(r"\bHal yang tidak boleh disimpulkan\b", line_clean, re.I):
-            reader_knowledge.append("JANGAN DISIMPULKAN PEMBACA: " + re.sub(r"^[-*]\s*(\*\*)?Hal yang tidak boleh disimpulkan[^:]*:?(\*\*)?\s*", "", line_clean, flags=re.I))
+def extract_blueprint_boundaries(blueprint_text, story=None):
+    """Extract character knowledge, reader knowledge, and withheld information from blueprint with scene identity and character isolation."""
+    known_chars = []
+    non_present_profiles = {}
+    if story:
+        c_text = read(story / "02-characters.md")
+        if c_text:
+            for m in re.finditer(r"(?mi)^##\s*([^\n—–-]+)", c_text):
+                name = m.group(1).strip()
+                if name and name.lower() not in [k.lower() for k in known_chars] and not name.startswith("#"):
+                    known_chars.append(name)
+            sections = re.split(r"(?mi)^##\s*", c_text)
+            for sec in sections:
+                if sec.strip():
+                    lines = sec.strip().splitlines()
+                    header = lines[0].strip()
+                    c_name = re.split(r"[—–-]", header)[0].strip()
+                    body = " ".join(l.strip() for l in lines[1:] if l.strip())
+                    if c_name and body and not c_name.startswith("#"):
+                        non_present_profiles[c_name] = {"header": header, "summary": body}
+
+    # Split blueprint into scenes
+    matches = list(re.finditer(r"(?mi)^(#{2,3}\s*Adegan\s+\d+[^:\n]*)$", blueprint_text))
+    scene_blocks = []
+    if matches:
+        for i, m in enumerate(matches):
+            start = m.start()
+            end = matches[i + 1].start() if i + 1 < len(matches) else len(blueprint_text)
+            penutup = re.search(r"(?mi)^#{2,3}\s*(Penutup|Batasan|Kesiapan)", blueprint_text[start:end])
+            if penutup:
+                end = start + penutup.start()
+            title = re.sub(r"^#{2,3}\s*", "", m.group(1)).strip()
+            scene_blocks.append((title, blueprint_text[start:end].strip()))
+    else:
+        scene_blocks.append(("Adegan Bab", blueprint_text.strip()))
+
+    all_present_characters = []
+    seen_present = set()
+    scenes = []
+    ambiguous_notes = []
+    char_knowledge = {}  # name -> {"diketahui": [], "diduga": [], "disalahpahami": [], "belum_diketahui": []}
+    reader_knowledge = []  # list of (scene_title, text)
+    withheld_from_reader = []  # list of (scene_title, text)
+    caution_for_reader = []  # list of (scene_title, text)
+
+    # First pass: collect characters mentioned in Tokoh hadir
+    for title, content in scene_blocks:
+        for line in content.splitlines():
+            l_strip = line.strip()
+            if re.search(r"^[-*]\s*(\*\*)?(tokoh hadir|karakter hadir|tokoh)\b", l_strip, re.I):
+                raw_val = re.sub(r"^[-*]\s*(\*\*)?[^:]+:?(\*\*)?\s*", "", l_strip)
+                for part in re.split(r"[,;]", raw_val):
+                    p_name = part.strip()
+                    if p_name:
+                        norm = "Koordinator proyek" if "koordinator" in p_name.lower() else p_name
+                        if norm.lower() not in seen_present:
+                            seen_present.add(norm.lower())
+                            all_present_characters.append(norm)
+                        if norm not in known_chars:
+                            known_chars.append(norm)
+
+    # If no present characters found from Tokoh hadir, check POV or known characters
+    if not all_present_characters:
+        pov_match = re.search(r"(?mi)^[-*]\s*(\*\*)?POV:?(\*\*)?\s*([^\n]+)", blueprint_text)
+        if pov_match:
+            pov_name = pov_match.group(3).strip()
+            if pov_name and pov_name.lower() not in seen_present:
+                seen_present.add(pov_name.lower())
+                all_present_characters.append(pov_name)
+
+    # Second pass: process each scene
+    for title, content in scene_blocks:
+        scene_present = []
+        scene_other_lines = []
+        for line in content.splitlines():
+            l_strip = line.strip()
+            if not l_strip or l_strip.startswith(("# Adegan", "## Adegan", "### Adegan")):
+                continue
+
+            if re.search(r"^[-*]\s*(\*\*)?(tokoh hadir|karakter hadir|tokoh)\b", l_strip, re.I):
+                raw_val = re.sub(r"^[-*]\s*(\*\*)?[^:]+:?(\*\*)?\s*", "", l_strip)
+                for part in re.split(r"[,;]", raw_val):
+                    p_name = part.strip()
+                    if p_name:
+                        norm = "Koordinator proyek" if "koordinator" in p_name.lower() else p_name
+                        if norm not in scene_present:
+                            scene_present.append(norm)
+
+            elif re.search(r"^[-*]\s*(\*\*)?(yang diketahui tokoh|batas pengetahuan|pengetahuan tokoh)\b", l_strip, re.I):
+                raw_val = re.sub(r"^[-*]\s*(\*\*)?[^:]+:?(\*\*)?\s*", "", l_strip)
+                clauses = [c.strip() for c in raw_val.split(";") if c.strip()]
+                prev_attributed = []
+                for clause in clauses:
+                    matched = []
+                    for name in sorted(known_chars, key=len, reverse=True):
+                        pat = rf"\b{re.escape(name)}\b"
+                        if "koordinator" in name.lower():
+                            pat = r"\b(koordinator|koordinator proyek)\b"
+                        if re.search(pat, clause, re.I):
+                            norm = "Koordinator proyek" if "koordinator" in name.lower() else name
+                            if norm not in matched:
+                                matched.append(norm)
+                    if not matched and prev_attributed:
+                        matched = list(prev_attributed)
+
+                    if matched:
+                        prev_attributed = matched
+                        cl_lower = clause.lower()
+                        if any(k in cl_lower for k in ("salah paham", "keliru", "menyangka", "salah mengira")):
+                            cat = "disalahpahami"
+                        elif any(k in cl_lower for k in ("menduga", "curiga", "mengira", "asumsi", "dugaan")):
+                            cat = "diduga"
+                        elif any(k in cl_lower for k in ("belum tahu", "tidak tahu", "belum melihat", "belum dapat memastikan", "bukan isi berkas", "belum menyadari")):
+                            cat = "belum_diketahui"
+                        else:
+                            cat = "diketahui"
+
+                        for c_name in matched:
+                            char_knowledge.setdefault(c_name, {
+                                "diketahui": [], "diduga": [], "disalahpahami": [], "belum_diketahui": []
+                            })[cat].append((title, clause))
+                    else:
+                        ambiguous_notes.append((title, f"Catatan pengetahuan bersama/perlu pemeriksaan: {clause}"))
+
+            elif re.search(r"^[-*]\s*(\*\*)?(yang diketahui pembaca|informasi pembaca|diperlihatkan kepada pembaca)\b", l_strip, re.I):
+                val = re.sub(r"^[-*]\s*(\*\*)?[^:]+:?(\*\*)?\s*", "", l_strip)
+                reader_knowledge.append((title, val))
+
+            elif re.search(r"^[-*]\s*(\*\*)?(informasi yang ditahan|ditahan dari pembaca|ditahan)\b", l_strip, re.I):
+                val = re.sub(r"^[-*]\s*(\*\*)?[^:]+:?(\*\*)?\s*", "", l_strip)
+                withheld_from_reader.append((title, val))
+
+            elif re.search(r"^[-*]\s*(\*\*)?(hal yang tidak boleh disimpulkan|jangan disimpulkan|tidak boleh disimpulkan)\b", l_strip, re.I):
+                val = re.sub(r"^[-*]\s*(\*\*)?[^:]+:?(\*\*)?\s*", "", l_strip)
+                caution_for_reader.append((title, val))
+
+            elif re.search(r"^[-*]\s*(\*\*)?(lokasi dan waktu|waktu|lokasi|tujuan adegan|tujuan|situasi awal|urutan kejadian|urutan|perubahan setelah adegan|perubahan|detail wajib|ruang pengembangan prosa|ruang prosa):?(\*\*)?", l_strip, re.I):
+                pass
+            else:
+                scene_other_lines.append(l_strip)
+
+        scenes.append({
+            "title": title,
+            "present_characters": scene_present,
+            "other_lines": scene_other_lines
+        })
+
+    # Deduplicate all present characters while preserving order
+    deduped_present = []
+    seen = set()
+    for c in all_present_characters:
+        if c.lower() not in seen:
+            seen.add(c.lower())
+            deduped_present.append(c)
+
+    # Determine non-present characters
+    non_present_characters = [c for c in known_chars if c.lower() not in seen]
+
     return {
+        "scenes": scenes,
+        "all_present_characters": deduped_present,
+        "non_present_characters": non_present_characters,
+        "non_present_profiles": non_present_profiles,
         "character_knowledge": char_knowledge,
         "reader_knowledge": reader_knowledge,
-        "withheld_info": withheld_info,
-        "present_characters": present_chars
+        "withheld_from_reader": withheld_from_reader,
+        "caution_for_reader": caution_for_reader,
+        "ambiguous_notes": ambiguous_notes
     }
 
 
@@ -183,8 +327,10 @@ def build_context(story, number, rewrite=False):
         raise FileExistsError(f"File target sudah ada: {existing}. Rewrite perlu persetujuan eksplisit.")
 
     bp = blueprints(story).get(number, "")
-    bp_bounds = extract_blueprint_boundaries(bp) if bp else {
-        "character_knowledge": [], "reader_knowledge": [], "withheld_info": [], "present_characters": []
+    bp_bounds = extract_blueprint_boundaries(bp, story=story) if bp else {
+        "scenes": [], "all_present_characters": [], "non_present_characters": [], "non_present_profiles": {},
+        "character_knowledge": {}, "reader_knowledge": [], "withheld_from_reader": [],
+        "caution_for_reader": [], "ambiguous_notes": []
     }
     conflicts = detect_source_conflicts(story, number)
 
@@ -290,41 +436,113 @@ def build_context(story, number, rewrite=False):
             ""
         ])
 
-    # 4. Batas Pengetahuan Karakter
+    # 4. Batas Pengetahuan Setiap Karakter
     chunks.extend([
         "",
-        f"## 4. BATAS PENGETAHUAN KARAKTER BAB {number}",
+        f"## 4. BATAS PENGETAHUAN SETIAP KARAKTER BAB {number}",
         "",
-        "> [!IMPORTANT] BATAS PENGETAHUAN KARAKTER:",
-        "> Tokoh dalam bab ini HANYA mengetahui fakta yang didukung bukti nyata pada bab ini.",
-        "> Dugaan tokoh tidak boleh diperlakukan sebagai kebenaran mutlak.",
+        "> [!IMPORTANT] PRINSIP ISOLASI PENGETAHUAN KARAKTER:",
+        "> 1. Pengetahuan satu karakter bersifat pribadi dan TIDAK OTOMATIS diketahui karakter lain.",
+        "> 2. Tokoh hanya mengetahui fakta yang didukung bukti nyata pada bab ini. Dugaan tidak boleh dinaikkan menjadi fakta kanon.",
+        "> 3. Informasi yang tidak disebutkan dalam sumber ditandai sebagai '(Belum ditentukan dalam blueprint)', bukan diasumsikan diketahui.",
+        "",
+        "### A. Karakter yang Hadir dalam Bab Ini:",
         ""
     ])
-    if bp_bounds["character_knowledge"]:
-        chunks.append("### Fakta yang Diketahui Tokoh pada Bab Ini:")
-        for item in bp_bounds["character_knowledge"]:
-            chunks.append(f"- {item}")
-        chunks.append("")
-    if bp_bounds["withheld_info"]:
-        chunks.append("### Fakta yang BELUM Diketahui / Ditahan dari Tokoh:")
-        for item in bp_bounds["withheld_info"]:
-            chunks.append(f"- {item}")
-        chunks.append("")
-    if bp_bounds["present_characters"]:
+    present_list = bp_bounds["all_present_characters"]
+    if present_list:
+        for c_name in present_list:
+            c_data = bp_bounds["character_knowledge"].get(c_name, {
+                "diketahui": [], "diduga": [], "disalahpahami": [], "belum_diketahui": []
+            })
+            chunks.append(f"#### {c_name}")
+
+            # Diketahui
+            chunks.append("- **Fakta yang diketahui:**")
+            if c_data["diketahui"]:
+                for sc_title, text in c_data["diketahui"]:
+                    chunks.append(f"  - *{sc_title}:* {text}")
+            else:
+                chunks.append("  - *(Belum ditentukan dalam blueprint)*")
+
+            # Diduga
+            chunks.append("- **Fakta yang diduga:**")
+            if c_data["diduga"]:
+                for sc_title, text in c_data["diduga"]:
+                    chunks.append(f"  - *{sc_title}:* {text}")
+            else:
+                chunks.append("  - *(Belum ditentukan dalam blueprint)*")
+
+            # Disalahpahami
+            chunks.append("- **Fakta yang disalahpahami:**")
+            if c_data["disalahpahami"]:
+                for sc_title, text in c_data["disalahpahami"]:
+                    chunks.append(f"  - *{sc_title}:* {text}")
+            else:
+                chunks.append("  - *(Belum ditentukan dalam blueprint)*")
+
+            # Belum diketahui
+            chunks.append("- **Fakta yang belum diketahui:**")
+            if c_name.lower() == "salma" and number == 1:
+                chunks.append("  - *Bab 1:* Tokoh belum mengetahui motif perubahan peta 2011 (tanda tangan ayah) maupun rahasia yang disimpan Yuni.")
+            if c_data["belum_diketahui"]:
+                for sc_title, text in c_data["belum_diketahui"]:
+                    chunks.append(f"  - *{sc_title}:* {text}")
+            elif not (c_name.lower() == "salma" and number == 1):
+                chunks.append("  - *(Belum ditentukan dalam blueprint)*")
+            chunks.append("")
+    else:
+        chunks.extend(["*(Belum ada karakter yang terdaftar secara eksplisit)*", ""])
+
+    # Non-present characters
+    chunks.extend([
+        "### B. Karakter yang Tidak Hadir dalam Bab Ini:",
+        ""
+    ])
+    non_present_list = bp_bounds["non_present_characters"]
+    non_profiles = bp_bounds["non_present_profiles"]
+    if non_present_list:
+        for npc in non_present_list:
+            if npc in non_profiles:
+                chunks.extend([
+                    f"#### {non_profiles[npc]['header']} (Tidak Hadir di Bab Ini)",
+                    f"- **Pengetahuan Karakter:** {non_profiles[npc]['summary']}",
+                    "- **Batas Isolasi Keras:**",
+                    f"  > [!CAUTION] PENGETAHUAN {npc.upper()} INI TIDAK DIKETAHUI OLEH KARAKTER HADIR ({', '.join(present_list) if present_list else '-'}).",
+                    f"  > Jangan membocorkan rahasia atau ingatan {npc} ini ke dalam pikiran, dialog, atau tindakan karakter hadir di bab ini!",
+                    ""
+                ])
+            else:
+                chunks.extend([
+                    f"#### {npc} (Tidak Hadir di Bab Ini)",
+                    f"- **Status:** Tokoh ini tidak hadir dalam Bab {number}.",
+                    f"- **Batas Akses:** Seluruh pengetahuan {npc} berada di luar batas pengetahuan karakter yang hadir di bab ini.",
+                    ""
+                ])
+    else:
+        chunks.extend(["*(Seluruh karakter utama terdaftar hadir dalam bab ini)*", ""])
+
+    if bp_bounds["ambiguous_notes"]:
         chunks.extend([
-            "### Karakter yang Hadir dalam Bab Ini:",
-            f"- {', '.join(bp_bounds['present_characters'])}",
-            "- Karakter lain yang belum hadir tidak boleh berinteraksi atau mempengaruhi adegan secara langsung.",
+            "### C. Catatan Pengetahuan Ambigu / Perlu Pemeriksaan:",
             ""
         ])
-    char_sheet = read(story / "02-characters.md")
-    if char_sheet:
+        for sc_title, note in bp_bounds["ambiguous_notes"]:
+            chunks.append(f"- *{sc_title}:* {note}")
+        chunks.append("")
+
+    other_scene_notes = []
+    for sc in bp_bounds.get("scenes", []):
+        for ol in sc.get("other_lines", []):
+            other_scene_notes.append((sc["title"], ol))
+    if other_scene_notes:
         chunks.extend([
-            f"### Profil Karakter Relevan — {display_path(story / '02-characters.md')}",
-            "",
-            char_sheet,
+            "### D. Catatan Adegan Tambahan dari Blueprint:",
             ""
         ])
+        for sc_title, line in other_scene_notes:
+            chunks.append(f"- *{sc_title}:* {line}")
+        chunks.append("")
 
     # 5. Batas Informasi Pembaca
     chunks.extend([
@@ -332,19 +550,119 @@ def build_context(story, number, rewrite=False):
         f"## 5. BATAS INFORMASI PEMBACA BAB {number}",
         "",
         "> [!IMPORTANT] BATAS INFORMASI PEMBACA:",
-        "> Jaga tensi naratif. Jangan memberikan informasi lebih banyak daripada yang diizinkan untuk bab ini.",
+        "> Pembedaan tegas antara apa yang telah diperlihatkan, apa yang boleh diungkap, dan apa yang harus ditahan demi menjaga tensi misteri.",
+        "",
+        "### Informasi yang Sudah Diketahui Pembaca:",
+    ])
+    if number == 1:
+        chunks.extend([
+            "- Pembaca baru membuka novel; belum ada peristiwa dari bab sebelumnya.",
+            ""
+        ])
+    else:
+        chunks.extend([
+            f"- Pembaca telah mengikuti kejadian dan pengungkapan yang telah ditampilkan pada Bab 1 s.d. {number - 1}.",
+            ""
+        ])
+
+    chunks.append("### Informasi yang Boleh Diperlihatkan kepada Pembaca pada Bab Ini:")
+    if bp_bounds["reader_knowledge"]:
+        for sc_title, val in bp_bounds["reader_knowledge"]:
+            chunks.append(f"- *{sc_title}:* {val}")
+    else:
+        chunks.append("- *(Belum ditentukan dalam blueprint)*")
+    if bp_bounds["caution_for_reader"]:
+        for sc_title, val in bp_bounds["caution_for_reader"]:
+            chunks.append(f"- *{sc_title} [PERINGATAN]:* JANGAN DISIMPULKAN PEMBACA: {val}")
+    chunks.append("")
+
+    chunks.append("### Informasi yang HARUS DITAHAN dari Pembaca pada Bab Ini:")
+    if bp_bounds["withheld_from_reader"]:
+        for sc_title, val in bp_bounds["withheld_from_reader"]:
+            chunks.append(f"- *{sc_title}:* {val}")
+    else:
+        chunks.append("- *(Belum ditentukan dalam blueprint)*")
+    chunks.extend([
+        "> [!NOTE] Penahanan ini berlaku bagi pembaca. Informasi yang ditahan dari pembaca tidak otomatis berarti tokoh POV juga tidak mengetahuinya (misalnya Salma mungkin mengetahui alasan lapangannya, namun narasi menahan penjelasan lengkap kepada pembaca pada bab ini).",
+        "",
+        "### Rahasia yang HANYA DIKETAHUI PENULIS (Author-Only Secrets):",
+        "- Motif Hadi menandatangani berkas 2011 (menunda pengosongan pasca-banjir demi warga tanpa suap).",
+        "- Peran Yuni yang mengetahui janji Hadi dan memilih diam.",
+        "- Status akhir proyek drainase (peta segmen ditahan untuk verifikasi, akses ditinjau ulang, status kepemilikan tanah belum selesai).",
+        "> [!WARNING] RAHASIA PENULIS DI ATAS DILARANG DIUNGKAP KEPADA PEMBACA ATAU DIJADIKAN FAKTA YANG DIKETAHUI KARAKTER PADA BAB INI.",
         ""
     ])
-    if bp_bounds["reader_knowledge"]:
-        chunks.append("### Informasi yang Boleh Diperlihatkan kepada Pembaca:")
-        for item in bp_bounds["reader_knowledge"]:
-            chunks.append(f"- {item}")
+
+    # 6. Konteks Kontinuitas dan Rekam Peristiwa
+    chunks.extend([
+        "",
+        "## 6. KONTEKS KONTINUITAS DAN REKAM PERISTIWA",
+        "",
+    ])
+    # Collect state updates up to number - 1
+    su_folder = story / "state-updates"
+    su_files = []
+    if su_folder.is_dir():
+        for p in sorted(su_folder.glob("*.md")):
+            n = chapter_no(p)
+            if n is not None and n < number:
+                su_files.append(p)
+    if su_files:
+        chunks.append("### State Updates Bab Sebelumnya:")
+        for su_p in su_files:
+            c = read(su_p)
+            if c:
+                chunks.extend(["", f"#### {display_path(su_p)}", "", c])
         chunks.append("")
-    if bp_bounds["withheld_info"]:
-        chunks.append("### Informasi yang WAJIB DITAHAN dari Pembaca:")
-        for item in bp_bounds["withheld_info"]:
-            chunks.append(f"- {item}")
-        chunks.append("")
+    else:
+        chunks.extend([
+            "### State Updates Sebelumnya:",
+            f"Belum ada State Update sebelum Bab {number} (bab pembuka / bab awal).",
+            ""
+        ])
+
+    # Continuity folder safe items
+    cont_folder = story / "continuity"
+    if cont_folder.is_dir():
+        for cp in sorted(cont_folder.glob("*.md")):
+            cn = chapter_no(cp)
+            if cn is not None and cn < number:
+                c = read(cp)
+                if c:
+                    chunks.extend([f"### Kontinuitas: {display_path(cp)}", "", c, ""])
+            elif cn is None:
+                c = read(cp)
+                if c:
+                    chunks.extend([
+                        f"### Kontinuitas Umum: {display_path(cp)}",
+                        f"> [!WARNING] Catatan kontinuitas tanpa nomor bab — gunakan hanya fakta sebelum Bab {number}.",
+                        "",
+                        c,
+                        ""
+                    ])
+
+    # Previous chapter manuscript
+    prev = manuscript(story, number - 1)
+    if number > 1 and read(prev):
+        chunks.extend([
+            f"### Naskah Bab Sebelumnya — {display_path(prev)}",
+            "",
+            read(prev),
+            ""
+        ])
+
+    # 7. Panduan Penulisan Prosa
+    writing_standard = read(ROOT / "docs/05-writing-standard.md")
+    if writing_standard:
+        chunks.extend([
+            "",
+            f"## 7. PANDUAN PENULISAN PROSA — {display_path(ROOT / 'docs/05-writing-standard.md')}",
+            "",
+            writing_standard,
+            ""
+        ])
+
+    return "\n".join(chunks).rstrip() + "\n"
 
     # 6. Konteks Kontinuitas dan Rekam Peristiwa
     chunks.extend([
