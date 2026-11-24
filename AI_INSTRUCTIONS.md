@@ -48,6 +48,7 @@ python novel.py --story SLUG context NOMOR_BAB --rewrite
 python novel.py --story SLUG audit
 python novel.py --story SLUG audit --prompt
 python novel.py --story SLUG verify NOMOR_BAB
+python novel.py --story SLUG agy 1-5,8
 ```
 
 - `status`: lihat progres file.
@@ -57,6 +58,7 @@ python novel.py --story SLUG verify NOMOR_BAB
 - `audit`: jalankan pemeriksaan deterministik.
 - `audit --prompt`: buat paket sumber dan instruksi untuk audit AI. Baca dan kerjakan auditnya, jangan menganggap prompt sebagai hasil audit.
 - `verify N`: cek keberadaan naskah, blueprint, dan State Update. Ini bukan penilaian kualitas.
+- `agy 1-5,8`: jalankan AGY satu bab demi satu bab. Bab yang sudah ada dilewati; batch berhenti jika satu bab gagal. Tambahkan `--rewrite` hanya jika pengguna meminta rewrite.
 
 Untuk menulis langsung sebagai AI:
 1. Jalankan `context N`.
