@@ -1,0 +1,29 @@
+name: Novel Engine checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile Python
+        run: python -m compileall -q novel.py novel_engine tests
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
+      - name: Audit every story
+        run: |
+          for story in stories/*; do
+            [ -d "$story" ] || continue
+            python novel.py --story "$(basename "$story")" audit
+          done
