@@ -10,6 +10,8 @@ def run_one(story, number, rewrite=False):
     if read(target) and not rewrite:
         print(f"Bab {number}: dilewati, naskah sudah ada.")
         return "skipped"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    state.parent.mkdir(parents=True, exist_ok=True)
     prompt = build_context(story, number, rewrite)
     prompt += (
         "\n\n## Instruksi eksekusi AGY\n"
