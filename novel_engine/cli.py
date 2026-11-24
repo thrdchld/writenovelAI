@@ -51,6 +51,9 @@ def main(argv=None):
     p.add_argument("--prompt", action="store_true", help="Simpan paket audit AI di workbench")
     p = sub.add_parser("verify", help="Verifikasi kelengkapan file bab")
     p.add_argument("chapter", type=int)
+    p = sub.add_parser("agy", help="Jalankan AGY satu bab atau batch berurutan")
+    p.add_argument("chapters", help="Nomor, rentang, atau daftar, misalnya 4 atau 1-5,8")
+    p.add_argument("--rewrite", action="store_true")
     args = parser.parse_args(argv)
     try:
         story = resolve_story(args.story)
@@ -81,6 +84,8 @@ def main(argv=None):
             return 1 if any(x[0] == "CRITICAL" for x in findings) else 0
         if args.command == "verify":
             return verify(story, args.chapter)
+        if args.command == "agy":
+            return run_batch(story, args.chapters, chapter_numbers(story), args.rewrite)
     except (ValueError, FileExistsError) as exc:
         parser.error(str(exc))
     return 0
