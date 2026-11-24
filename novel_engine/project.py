@@ -358,22 +358,22 @@ def extract_author_secrets(story):
             else:
                 unclassified_canon.append(entry)
 
-    # Concept document fallback ONLY for explicit author-only secret tags
-    if not author_secrets:
-        concept_path = story / "01-concept.md"
-        c_text = read(concept_path)
-        if c_text:
-            sections = re.split(r"(?mi)^##\s+", c_text)
-            for sec in sections:
-                sec_strip = sec.strip()
-                if not sec_strip:
-                    continue
-                header = sec_strip.splitlines()[0].strip()
-                if any(k in header.lower() for k in ("[rahasia penulis]", "[author-only]")) or \
-                   re.search(r"(?mi)^[-*]\s*(\*\*)?(?:klasifikasi|sifat|akses):?(\*\*)?\s*(rahasia penulis|author-only)", sec_strip):
-                    body = " ".join(sec_strip.splitlines()[1:]).strip()
-                    if body:
-                        author_secrets.append(f"{header}: {' '.join(body.split())}")
+    # Scan 01-concept.md for explicit author-only secret tags
+    concept_path = story / "01-concept.md"
+    c_text = read(concept_path)
+    if c_text:
+        sections = re.split(r"(?mi)^##\s+", c_text)
+        for sec in sections:
+            sec_strip = sec.strip()
+            if not sec_strip:
+                continue
+            header = sec_strip.splitlines()[0].strip()
+            if any(k in header.lower() for k in ("[rahasia penulis]", "[author-only]")) or \
+               re.search(r"(?mi)^[-*]\s*(\*\*)?(?:klasifikasi|sifat|akses):?(\*\*)?\s*(rahasia penulis|author-only)", sec_strip):
+                body = " ".join(sec_strip.splitlines()[1:]).strip()
+                entry = f"{header}: {' '.join(body.split())}" if body else header
+                if entry not in author_secrets:
+                    author_secrets.append(entry)
 
     return author_secrets, character_secrets, unclassified_canon, needs_review_canon, public_canon
 

@@ -10,6 +10,7 @@ from novel_engine.project import (
     manuscript,
     state_update,
     read,
+    extract_author_secrets,
 )
 from novel_engine.audit import deterministic_audit
 
@@ -820,6 +821,41 @@ class EngineTests(unittest.TestCase):
         # Rahasia karakter tetap tercatat dalam kanon keputusan di bagian rahasia karakter
         self.assertIn("### Rahasia Karakter dalam Dokumen Keputusan", ctx)
         self.assertIn("Maya membeli tanah yayasan atas nama adiknya.", ctx)
+
+    def test_4_01_concept_author_secrets_not_lost_when_decision_log_has_author_secrets(self):
+        """Tahap 4: Memastikan rahasia penulis eksplisit di 01-concept.md tidak hilang ketika Decision Log memiliki rahasia penulis."""
+        (self.story_a / "05-decision-log.md").write_text(
+            "# Decision Log\n\n"
+            "## D-001 — Rekening Luar Negeri\n"
+            "- **Status:** KANON\n"
+            "- **Klasifikasi:** Rahasia Penulis\n"
+            "- **Keputusan:** Bukti aliran dana luar negeri tersimpan di brankas tersembunyi.\n",
+            encoding="utf-8"
+        )
+        (self.story_a / "01-concept.md").write_text(
+            "# Konsep Cerita A\n\n"
+            "## Mekanisme Umum\n"
+            "Pemeriksaan dilakukan melalui audit fisik dan digital.\n\n"
+            "## Akhir yang Dituju [RAHASIA PENULIS]\n"
+            "Pelaku utama menyerahkan diri pada bab penutup setelah bukti brankas terbuka.\n",
+            encoding="utf-8"
+        )
+        author_secrets, character_secrets, unclassified, needs_review, public = extract_author_secrets(self.story_a)
+        
+        # 1. Keduanya harus ada dalam author_secrets
+        author_sec_text = " ".join(author_secrets)
+        self.assertIn("Rekening Luar Negeri", author_sec_text)
+        self.assertIn("Akhir yang Dituju", author_sec_text)
+        self.assertIn("Pelaku utama menyerahkan diri", author_sec_text)
+
+        # 2. Bagian konsep tanpa penanda eksplisit TIDAK boleh masuk author_secrets
+        self.assertNotIn("Mekanisme Umum", author_sec_text)
+
+        # 3. Keduanya muncul pada paket konteks di bagian Author-Only Secrets
+        ctx = build_context(self.story_a, 1)
+        author_ctx = ctx[ctx.find("### Rahasia yang HANYA DIKETAHUI PENULIS"):ctx.find("### Rahasia Karakter")]
+        self.assertIn("Rekening Luar Negeri", author_ctx)
+        self.assertIn("Akhir yang Dituju", author_ctx)
 
 
 if __name__ == "__main__":
