@@ -36,7 +36,7 @@ def github_comment(repo, issue_number, message):
 
 
 def call_model(system, user):
-    base = os.environ.get("NOVEL_AI_BASE_URL", "https://api.openai.com/v1").rstrip("/")
+    base = (os.environ.get("NOVEL_AI_BASE_URL") or "https://api.openai.com/v1").rstrip("/")
     key = os.environ.get("NOVEL_AI_API_KEY")
     model = os.environ.get("NOVEL_AI_MODEL")
     if not key or not model:
@@ -78,9 +78,6 @@ def handle(repo, issue_number, command):
     action = parts[1].lower()
     if action == "status" and len(parts) == 3:
         story = resolve_story(parts[2])
-        nums = []
-        for n in sorted({int(x) for x in re.findall(r"Bab (\d+)", "")}):
-            nums.append(n)
         lines = [f"**Status {story.name}**"]
         from .project import chapter_numbers
         for n in chapter_numbers(story):
@@ -110,6 +107,8 @@ def handle(repo, issue_number, command):
         number = int(parts[3])
         target = manuscript(story, number)
         state = state_update(story, number)
+        if target.exists() or state.exists():
+            raise FileExistsError("Naskah atau State Update sudah ada; bot tidak akan menimpa file. Gunakan alur rewrite terkontrol secara lokal.")
         context = build_context(story, number, rewrite=False)
         answer = call_model(
             "Anda penulis novel profesional. Gunakan hanya fakta dan keputusan yang didukung paket konteks. "
