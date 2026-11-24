@@ -80,6 +80,8 @@ python novel.py --context 5 --story nama-folder-novel
 
 Python membuat `stories/<slug>/workbench/context-chapter-005.md`. Paket ini berisi instruksi, standar prosa, README proyek, dokumen inti, blueprint bab, bab sebelumnya, serta catatan kontinuitas yang relevan. State Update dari bab setelah target tidak disertakan.
 
+Jika target naskah sudah ada, Python menolak menyiapkan konteks agar AI tidak menimpanya tanpa sengaja. Rewrite hanya dilakukan dengan persetujuan eksplisit dan opsi `--rewrite`.
+
 AI membaca paket tersebut, menulis naskah ke `manuscript/chapter-005.md`, membuat State Update ke `state-updates/chapter-005.md`, lalu meminta Python memeriksa hasil:
 
 ```bash
@@ -102,7 +104,8 @@ Menu interaktif menyediakan status bab, penulisan satu bab, penulisan beberapa b
 ### Perintah dan prasyarat
 
 - `python novel.py --status --story SLUG`: melihat status bab.
-- `python novel.py --context NOMOR --story SLUG`: menyiapkan paket konteks untuk AI.
+- `python novel.py --context NOMOR --story SLUG`: menyiapkan paket konteks untuk bab baru.
+- `python novel.py --context NOMOR --story SLUG --rewrite`: menyiapkan paket konteks untuk rewrite yang sudah disetujui pengguna.
 - `python novel.py --verify NOMOR --story SLUG`: memeriksa naskah dan State Update.
 - `python novel.py`: membuka menu interaktif yang menjalankan AGY.
 
