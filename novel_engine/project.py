@@ -7,6 +7,13 @@ CORE = ("00-premise.md", "01-concept.md", "02-characters.md",
         "03-world-and-rules.md", "04-story-outline.md", "05-decision-log.md")
 
 
+def display_path(path):
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
 def read(path):
     try:
         return path.read_text(encoding="utf-8").strip()
@@ -98,7 +105,7 @@ def build_memory(story, before_chapter=None):
     for path in sources:
         content = read(path)
         if content:
-            sections.extend([f"## SOURCE: {path.relative_to(ROOT)}", "", content, ""])
+            sections.extend([f"## SOURCE: {display_path(path)}", "", content, ""])
     return "\n".join(sections).strip()
 
 
@@ -107,7 +114,7 @@ def build_context(story, number, rewrite=False):
         raise ValueError(f"Bab {number} tidak ditemukan dalam outline/blueprint.")
     target = manuscript(story, number)
     if target.exists() and not rewrite:
-        raise FileExistsError(f"Naskah sudah ada: {target.relative_to(ROOT)}. Rewrite perlu persetujuan eksplisit.")
+        raise FileExistsError(f"Naskah sudah ada: {display_path(target)}. Rewrite perlu persetujuan eksplisit.")
     parts = [
         ("Instruksi AI", ROOT / "AI_INSTRUCTIONS.md"),
         ("Standar prosa", ROOT / "docs/05-writing-standard.md"),
@@ -117,7 +124,7 @@ def build_context(story, number, rewrite=False):
     chunks = [f"# PAKET KONTEKS BAB {number:03d}", "",
               f"Proyek: {story.name}",
               f"Target naskah: {target.relative_to(ROOT)}",
-              f"Target State Update: {state_update(story, number).relative_to(ROOT)}",
+              f"Target State Update: {display_path(state_update(story, number))}",
               "Gunakan sumber di bawah sebagai sumber kebenaran. Bedakan KANON, WAJIB, FLEKSIBEL, dan BELUM DIPUTUSKAN.",
               "Jangan menyimpulkan fakta yang tidak didukung sumber. Jika ada konflik yang memengaruhi cerita, laporkan dan jangan menebak.",
               "State Update bab setelah target tidak boleh digunakan.",
@@ -125,7 +132,7 @@ def build_context(story, number, rewrite=False):
     for label, path in parts:
         content = read(path)
         if content:
-            chunks.extend(["", f"## {label} — {path.relative_to(ROOT)}", "", content])
+            chunks.extend(["", f"## {label} — {display_path(path)}", "", content])
     memory = build_memory(story, before_chapter=number)
     if memory:
         chunks.extend(["", "## MEMORI CERITA BERDASARKAN SUMBER", "", memory])
