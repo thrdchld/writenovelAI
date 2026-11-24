@@ -7,11 +7,18 @@ from .project import build_context, manuscript, state_update, read
 def run_one(story, number, rewrite=False):
     target = manuscript(story, number)
     state = state_update(story, number)
-    if read(target) and not rewrite:
-        print(f"Bab {number}: dilewati, naskah sudah ada.")
-        return "skipped"
+    if not rewrite and target.exists():
+        if read(target) and read(state):
+            print(f"Bab {number}: dilewati, naskah dan State Update sudah ada.")
+            return "skipped"
+        print(f"Bab {number}: file parsial terdeteksi. Perbaiki naskah/State Update sebelum melanjutkan.")
+        return "incomplete"
+    if not rewrite and state.exists():
+        print(f"Bab {number}: State Update ada tanpa naskah. Tidak ditimpa.")
+        return "incomplete"
     target.parent.mkdir(parents=True, exist_ok=True)
     state.parent.mkdir(parents=True, exist_ok=True)
+    before = target.stat() if target.exists() else None
     prompt = build_context(story, number, rewrite)
     prompt += (
         "\n\n## Instruksi eksekusi AGY\n"
@@ -44,6 +51,9 @@ def run_one(story, number, rewrite=False):
         pass
     if not read(target) or not read(state):
         print(f"Bab {number}: AGY selesai tetapi naskah atau State Update belum lengkap.")
+        return "incomplete"
+    if rewrite and before and target.stat().st_mtime_ns == before.st_mtime_ns and target.stat().st_size == before.st_size:
+        print(f"Bab {number}: file tidak berubah; rewrite tidak dapat diverifikasi.")
         return "incomplete"
     print(f"Bab {number}: naskah dan State Update ditemukan.")
     return "success"
