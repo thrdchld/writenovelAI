@@ -113,8 +113,10 @@ def build_context(story, number, rewrite=False):
     if number not in chapter_numbers(story):
         raise ValueError(f"Bab {number} tidak ditemukan dalam outline/blueprint.")
     target = manuscript(story, number)
-    if target.exists() and not rewrite:
-        raise FileExistsError(f"Naskah sudah ada: {display_path(target)}. Rewrite perlu persetujuan eksplisit.")
+    state_target = state_update(story, number)
+    if (target.exists() or state_target.exists()) and not rewrite:
+        existing = ", ".join(display_path(x) for x in (target, state_target) if x.exists())
+        raise FileExistsError(f"File target sudah ada: {existing}. Rewrite perlu persetujuan eksplisit.")
     parts = [
         ("Instruksi AI", ROOT / "AI_INSTRUCTIONS.md"),
         ("Panduan blueprint adegan", ROOT / "docs/02-scene-blueprint.md"),
