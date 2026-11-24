@@ -11,7 +11,7 @@ Menjaga satu sumber kebenaran cerita dan mengurangi pengulangan konteks. Mesin t
 3. `novel_engine/audit.py`: pemeriksaan deterministik atas outline/blueprint/naskah/State Update dan penyusun paket audit AI.
 4. `novel_engine/cli.py`: perintah yang dipakai pengguna dan AI.
 5. `tests/test_engine.py`: tes untuk parsing blueprint gabungan, audit blueprint hilang, pencegahan kebocoran State Update masa depan, dan nomor bab.
-6. `.github/workflows/python-check.yml`: menjalankan compile, tes, dan audit struktur pada push/PR.
+6. `.github/workflows/python-check.yml`: menjalankan compile, tes, dan audit struktur pada push/PR.\n7. `.github/workflows/novel-bot.yml` dan `novel_engine/github_bot.py`: chatbot issue berbasis provider OpenAI-compatible untuk status, audit, dan penulisan bab.
 
 Tidak ada database atau indeks memori duplikat. Memori dibangun dari dokumen sumber setiap kali diminta. Dengan demikian, cache yang basi tidak bisa menjadi sumber fakta baru.
 
@@ -34,7 +34,7 @@ Python mengecek fakta struktural yang dapat dibuktikan dari file. Audit AI menil
 
 Setiap perubahan struktural harus dicatat di decision log dan dampak lintas bab ditelusuri. Perubahan yang disarankan AI belum menjadi kanon sampai disetujui.
 
-## Batasan yang diketahui
+## GitHub chatbot\n\nBot menerima komentar issue dari pemilik repository dengan perintah status, audit, dan write. Ia menggunakan secret API provider dan variable model/base URL. Penulisan hanya boleh ke bab yang belum memiliki naskah maupun State Update; hasil disimpan dalam commit. Bot tidak memproses komentar pull request. Workflow tidak akan bisa menulis dengan AI sampai secret dan variable provider diatur.\n\n## Batasan yang diketahui
 
 - Audit deterministik saat ini tidak memahami makna naratif; ia tidak bisa membuktikan sebuah motivasi meyakinkan atau payoff memuaskan.
 - Perintah `verify` memeriksa kelengkapan berkas, bukan kualitas.
