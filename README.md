@@ -56,6 +56,18 @@ Tidak ada pemeriksaan otomatis yang menjamin cerita bebas kesalahan. Temuan AI h
 
 Workflow `.github/workflows/python-check.yml` menjalankan compile, unit test, dan audit struktur pada push, pull request, serta pemicu manual. Workflow ini tidak memanggil model AI dan tidak membutuhkan API key.
 
+## GitHub Issue chatbot
+
+Workflow `.github/workflows/novel-bot.yml` menerima perintah dari komentar issue oleh pemilik repository:
+
+```text
+@novelbot status gang-yang-hilang-dari-peta
+@novelbot audit gang-yang-hilang-dari-peta
+@novelbot write gang-yang-hilang-dari-peta 1
+```
+
+Agar aktif, atur Repository Secret `NOVEL_AI_API_KEY` serta Repository Variables `NOVEL_AI_MODEL` dan opsional `NOVEL_AI_BASE_URL` (default `https://api.openai.com/v1`). Endpoint harus kompatibel dengan OpenAI Chat Completions. Bot menolak komentar selain dari pemilik repository, tidak memproses pull request, dan tidak menimpa naskah/State Update yang sudah ada. Penulisan bot disimpan dalam commit dan tetap harus diaudit.
+
 ## Struktur kode
 
 - `novel.py`: satu pintu masuk CLI.
