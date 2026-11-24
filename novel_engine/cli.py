@@ -116,7 +116,20 @@ def main(argv=None):
     p.add_argument("--rewrite", action="store_true")
     args = parser.parse_args(argv)
     try:
-        story = resolve_story(args.story)
+        if args.command is None and not args.story:
+            choices = sorted(p for p in (ROOT / "stories").iterdir() if p.is_dir())
+            if len(choices) > 1:
+                print("PILIH PROYEK")
+                for i, item in enumerate(choices, 1):
+                    print(f"{i}. {item.name}")
+                selected = input("Nomor proyek: ").strip()
+                if not selected.isdigit() or not 1 <= int(selected) <= len(choices):
+                    raise ValueError("Pilihan proyek tidak valid.")
+                story = choices[int(selected) - 1]
+            else:
+                story = resolve_story()
+        else:
+            story = resolve_story(args.story)
         if args.command is None:
             return interactive_menu(story)
         if args.command == "status":
