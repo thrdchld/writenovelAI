@@ -28,7 +28,7 @@ class EngineTests(unittest.TestCase):
         found = deterministic_audit(self.story)
         self.assertTrue(any(x[1] == "BLUEPRINT_MISSING" and "Bab 2" in x[2] for x in found))
 
-    def test_context_does_not_include_future_state(self):
+    def test_audit_detects_duplicate_outline_number(self):\n        (self.story / "04-story-outline.md").write_text("| 1 | One |\\n| 1 | Duplicate |\\n", encoding="utf-8")\n        found = deterministic_audit(self.story)\n        self.assertTrue(any(x[1] == "DUPLICATE_OUTLINE_NUMBER" for x in found))\n\n    def test_context_does_not_include_future_state(self):
         (self.story / "05-decision-log.md").write_text("Canon", encoding="utf-8")
         (self.story / "state-updates/chapter-002.md").write_text("future secret", encoding="utf-8")
         text = build_context(self.story, 1)
