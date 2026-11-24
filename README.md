@@ -37,6 +37,8 @@ Urutan argumen: `python novel.py --story SLUG PERINTAH`. Jika hanya ada satu pro
 | `audit` | Pemeriksaan struktur deterministik |
 | `audit --prompt` | Selain cek deterministik, membuat paket audit untuk AI di workbench |
 | `verify N` | Memastikan naskah, blueprint, dan State Update tersedia |
+| `agy 1-5,8` | Menjalankan AGY secara berurutan; bab yang sudah ada dilewati |
+| `agy 5 --rewrite` | Menjalankan AGY untuk rewrite yang diminta secara eksplisit |
 
 ## Prinsip memori
 
