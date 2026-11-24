@@ -9,7 +9,7 @@ permissions:
   issues: write
 
 concurrency:
-  group: novelbot-${{ github.event.issue.number }}
+  group: novelbot-${{ github.repository }}
   cancel-in-progress: false
 
 jobs:
