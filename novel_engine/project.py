@@ -126,6 +126,120 @@ def build_memory(story, before_chapter=None):
     return "\n".join(sections).strip()
 
 
+def parse_character_profile(text):
+    """Split character summary into public/general profile and private secrets."""
+    raw_sentences = re.split(r"(?<=[.!?])\s+", text.strip())
+    sentences = [s.strip() for s in raw_sentences if s.strip()]
+
+    public_parts = []
+    secrets_parts = []
+
+    secret_keywords = (
+        "rahasia", "diam", "sembunyi", "janji", "privat", "motif",
+        "tidak menceritakan", "tidak memberitahu", "takut", "memilih diam",
+        "menyembunyikan", "mengetahui bahwa", "secret", "hidden", "vow", "oath"
+    )
+
+    for s in sentences:
+        s_lower = s.lower()
+        if any(k in s_lower for k in secret_keywords):
+            secrets_parts.append(s)
+        else:
+            public_parts.append(s)
+
+    public_info = " ".join(public_parts) if public_parts else text
+    return public_info, secrets_parts
+
+
+def extract_author_secrets(story):
+    """Dynamically extract canonical author-only secrets from decision-log and/or concept documents."""
+    secrets = []
+    if not story:
+        return secrets
+
+    dl_path = story / "05-decision-log.md"
+    dl_text = read(dl_path)
+    if dl_text:
+        sections = re.split(r"(?mi)^##\s+", dl_text)
+        for sec in sections:
+            sec_strip = sec.strip()
+            if not sec_strip or sec_strip.lower().startswith("decision log") or sec_strip.lower().startswith("belum diputuskan"):
+                continue
+            lines = sec_strip.splitlines()
+            title = lines[0].strip()
+            keputusan_match = re.search(r"(?mi)^[-*]\s*(\*\*)?Keputusan:?(\*\*)?\s*([^\n]+(?:\n(?!\s*[-*]\s*(\*\*|\w+:)|\s*##)[^\n]+)*)", sec_strip)
+            if keputusan_match:
+                kep = " ".join(keputusan_match.group(3).split())
+                secrets.append(f"{title}: {kep}")
+            elif len(lines) > 1:
+                body = " ".join(" ".join(lines[1:]).split())
+                if body:
+                    secrets.append(f"{title}: {body}")
+
+    if not secrets:
+        concept_path = story / "01-concept.md"
+        c_text = read(concept_path)
+        if c_text:
+            sections = re.split(r"(?mi)^##\s+", c_text)
+            for sec in sections:
+                sec_strip = sec.strip()
+                if not sec_strip:
+                    continue
+                header = sec_strip.splitlines()[0].strip()
+                if any(k in header.lower() for k in ("mekanisme misteri", "akhir yang dituju", "kebenaran cerita", "resolusi")):
+                    body = " ".join(sec_strip.splitlines()[1:]).strip()
+                    if body:
+                        secrets.append(f"{header}: {' '.join(body.split())}")
+
+    return secrets
+
+
+def normalize_character_name(raw_name, known_names):
+    """Normalize character name by matching known characters or capitalizing."""
+    s = raw_name.strip()
+    if not s:
+        return ""
+    for k in known_names:
+        if s.lower() == k.lower():
+            return k
+    if s.islower():
+        return s[0].upper() + s[1:]
+    return s
+
+
+def match_characters_in_clause(clause, candidate_chars):
+    """Accurately match characters in a clause, supporting multi-word names without collision."""
+    matched = []
+    clause_lower = clause.lower()
+
+    # 1. Full name match (longest names first)
+    for name in sorted(candidate_chars, key=len, reverse=True):
+        pat = rf"\b{re.escape(name.lower())}\b"
+        if re.search(pat, clause_lower):
+            if name not in matched:
+                matched.append(name)
+    if matched:
+        return matched
+
+    # 2. Distinctive single-word match if unique across candidate_chars
+    char_words = {}
+    all_words_freq = {}
+    for name in candidate_chars:
+        words = [w.lower() for w in re.findall(r"\w+", name) if len(w) >= 3]
+        char_words[name] = words
+        for w in set(words):
+            all_words_freq[w] = all_words_freq.get(w, 0) + 1
+
+    for name in sorted(candidate_chars, key=len, reverse=True):
+        for w in char_words.get(name, []):
+            if all_words_freq.get(w, 0) == 1:
+                if re.search(rf"\b{re.escape(w)}\b", clause_lower):
+                    if name not in matched:
+                        matched.append(name)
+                    break
+    return matched
+
+
 def extract_blueprint_boundaries(blueprint_text, story=None):
     """Extract character knowledge, reader knowledge, and withheld information from blueprint with scene identity and character isolation."""
     known_chars = []
@@ -145,7 +259,13 @@ def extract_blueprint_boundaries(blueprint_text, story=None):
                     c_name = re.split(r"[—–-]", header)[0].strip()
                     body = " ".join(l.strip() for l in lines[1:] if l.strip())
                     if c_name and body and not c_name.startswith("#"):
-                        non_present_profiles[c_name] = {"header": header, "summary": body}
+                        pub_info, sec_parts = parse_character_profile(body)
+                        non_present_profiles[c_name] = {
+                            "header": header,
+                            "summary": body,
+                            "public_info": pub_info,
+                            "secrets_info": sec_parts
+                        }
 
     # Split blueprint into scenes
     matches = list(re.finditer(r"(?mi)^(#{2,3}\s*Adegan\s+\d+[^:\n]*)$", blueprint_text))
@@ -180,7 +300,7 @@ def extract_blueprint_boundaries(blueprint_text, story=None):
                 for part in re.split(r"[,;]", raw_val):
                     p_name = part.strip()
                     if p_name:
-                        norm = "Koordinator proyek" if "koordinator" in p_name.lower() else p_name
+                        norm = normalize_character_name(p_name, known_chars)
                         if norm.lower() not in seen_present:
                             seen_present.add(norm.lower())
                             all_present_characters.append(norm)
@@ -193,8 +313,9 @@ def extract_blueprint_boundaries(blueprint_text, story=None):
         if pov_match:
             pov_name = pov_match.group(3).strip()
             if pov_name and pov_name.lower() not in seen_present:
-                seen_present.add(pov_name.lower())
-                all_present_characters.append(pov_name)
+                norm = normalize_character_name(pov_name, known_chars)
+                seen_present.add(norm.lower())
+                all_present_characters.append(norm)
 
     # Second pass: process each scene
     for title, content in scene_blocks:
@@ -210,7 +331,7 @@ def extract_blueprint_boundaries(blueprint_text, story=None):
                 for part in re.split(r"[,;]", raw_val):
                     p_name = part.strip()
                     if p_name:
-                        norm = "Koordinator proyek" if "koordinator" in p_name.lower() else p_name
+                        norm = normalize_character_name(p_name, known_chars)
                         if norm not in scene_present:
                             scene_present.append(norm)
 
@@ -219,15 +340,7 @@ def extract_blueprint_boundaries(blueprint_text, story=None):
                 clauses = [c.strip() for c in raw_val.split(";") if c.strip()]
                 prev_attributed = []
                 for clause in clauses:
-                    matched = []
-                    for name in sorted(known_chars, key=len, reverse=True):
-                        pat = rf"\b{re.escape(name)}\b"
-                        if "koordinator" in name.lower():
-                            pat = r"\b(koordinator|koordinator proyek)\b"
-                        if re.search(pat, clause, re.I):
-                            norm = "Koordinator proyek" if "koordinator" in name.lower() else name
-                            if norm not in matched:
-                                matched.append(norm)
+                    matched = match_characters_in_clause(clause, known_chars)
                     if not matched and prev_attributed:
                         matched = list(prev_attributed)
 
@@ -483,12 +596,10 @@ def build_context(story, number, rewrite=False):
 
             # Belum diketahui
             chunks.append("- **Fakta yang belum diketahui:**")
-            if c_name.lower() == "salma" and number == 1:
-                chunks.append("  - *Bab 1:* Tokoh belum mengetahui motif perubahan peta 2011 (tanda tangan ayah) maupun rahasia yang disimpan Yuni.")
             if c_data["belum_diketahui"]:
                 for sc_title, text in c_data["belum_diketahui"]:
                     chunks.append(f"  - *{sc_title}:* {text}")
-            elif not (c_name.lower() == "salma" and number == 1):
+            else:
                 chunks.append("  - *(Belum ditentukan dalam blueprint)*")
             chunks.append("")
     else:
@@ -504,19 +615,34 @@ def build_context(story, number, rewrite=False):
     if non_present_list:
         for npc in non_present_list:
             if npc in non_profiles:
+                prof = non_profiles[npc]
+                header = prof["header"]
+                public_info = prof.get("public_info", prof.get("summary", ""))
+                secrets_info = prof.get("secrets_info", [])
+
                 chunks.extend([
-                    f"#### {non_profiles[npc]['header']} (Tidak Hadir di Bab Ini)",
-                    f"- **Pengetahuan Karakter:** {non_profiles[npc]['summary']}",
-                    "- **Batas Isolasi Keras:**",
-                    f"  > [!CAUTION] PENGETAHUAN {npc.upper()} INI TIDAK DIKETAHUI OLEH KARAKTER HADIR ({', '.join(present_list) if present_list else '-'}).",
-                    f"  > Jangan membocorkan rahasia atau ingatan {npc} ini ke dalam pikiran, dialog, atau tindakan karakter hadir di bab ini!",
+                    f"#### {header} (Tidak Hadir di Bab Ini)",
+                    f"- **Profil Umum & Hubungan (Referensi Kanon):** {public_info}",
+                ])
+                if secrets_info:
+                    chunks.append("- **Rahasia Pribadi / Motif Tersembunyi (Isolasi Ketat):**")
+                    for s_item in secrets_info:
+                        chunks.append(f"  - {s_item}")
+                else:
+                    chunks.append("- **Rahasia Pribadi / Motif Tersembunyi:** *(Tidak ada rahasia pribadi spesifik yang tercatat)*")
+
+                chunks.extend([
+                    "- **Batas Isolasi Karakter:**",
+                    f"  > [!CAUTION] ISOLASI RAHASIA {npc.upper()}:",
+                    f"  > Hubungan umum dan peran publik {npc} dapat diketahui oleh tokoh hadir sesuai relasi mereka.",
+                    f"  > Namun, rahasia pribadi, memori tersembunyi, atau motif internal {npc} DILARANG dibocorkan ke dalam pikiran, dialog, atau persepsi karakter yang hadir pada bab ini!",
                     ""
                 ])
             else:
                 chunks.extend([
                     f"#### {npc} (Tidak Hadir di Bab Ini)",
                     f"- **Status:** Tokoh ini tidak hadir dalam Bab {number}.",
-                    f"- **Batas Akses:** Seluruh pengetahuan {npc} berada di luar batas pengetahuan karakter yang hadir di bab ini.",
+                    f"- **Batas Akses:** Hubungan umum tetap berlaku, namun informasi pribadi atau aktivitas {npc} di luar bab ini tidak diketahui karakter hadir.",
                     ""
                 ])
     else:
@@ -583,12 +709,17 @@ def build_context(story, number, rewrite=False):
     else:
         chunks.append("- *(Belum ditentukan dalam blueprint)*")
     chunks.extend([
-        "> [!NOTE] Penahanan ini berlaku bagi pembaca. Informasi yang ditahan dari pembaca tidak otomatis berarti tokoh POV juga tidak mengetahuinya (misalnya Salma mungkin mengetahui alasan lapangannya, namun narasi menahan penjelasan lengkap kepada pembaca pada bab ini).",
+        "> [!NOTE] Penahanan ini berlaku bagi pembaca. Informasi yang ditahan dari pembaca tidak otomatis berarti tokoh POV juga tidak mengetahuinya (misalnya karakter POV mungkin mengetahui alasan tindakannya, namun narasi sengaja menahan penjelasan lengkap kepada pembaca pada bab ini).",
         "",
         "### Rahasia yang HANYA DIKETAHUI PENULIS (Author-Only Secrets):",
-        "- Motif Hadi menandatangani berkas 2011 (menunda pengosongan pasca-banjir demi warga tanpa suap).",
-        "- Peran Yuni yang mengetahui janji Hadi dan memilih diam.",
-        "- Status akhir proyek drainase (peta segmen ditahan untuk verifikasi, akses ditinjau ulang, status kepemilikan tanah belum selesai).",
+    ])
+    author_secrets = extract_author_secrets(story)
+    if author_secrets:
+        for s in author_secrets:
+            chunks.append(f"- {s}")
+    else:
+        chunks.append("- *(Tidak ada rahasia khusus yang tercatat dalam dokumen kanon)*")
+    chunks.extend([
         "> [!WARNING] RAHASIA PENULIS DI ATAS DILARANG DIUNGKAP KEPADA PEMBACA ATAU DIJADIKAN FAKTA YANG DIKETAHUI KARAKTER PADA BAB INI.",
         ""
     ])
