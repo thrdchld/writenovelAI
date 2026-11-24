@@ -126,82 +126,202 @@ def build_memory(story, before_chapter=None):
     return "\n".join(sections).strip()
 
 
-def parse_character_profile(text):
-    """Split character summary into public/general profile, explicit secrets, and ambiguous/unclassified info."""
-    raw_sentences = re.split(r"(?<=[.!?])\s+", text.strip())
-    sentences = [s.strip() for s in raw_sentences if s.strip()]
+def classify_decision_entry(sec_strip):
+    """
+    Classify a decision section into one of:
+    - 'RAHASIA_PENULIS': explicitly marked author-only secret
+    - 'RAHASIA_KARAKTER': secret owned or known by characters
+    - 'INFORMASI_PUBLIK': explicitly declared public fact
+    - 'PERLU_PEMERIKSAAN': conflicting or empty classification
+    - 'BELUM_DIKLASIFIKASIKAN': canonical decision without access classification
+    """
+    lines = sec_strip.splitlines()
+    title = lines[0].strip()
+    title_lower = title.lower()
 
-    public_parts = []
-    secrets_parts = []
-    ambiguous_parts = []
+    # 1. Title explicit bracket tag
+    title_tag = None
+    if re.search(r"\[(rahasia penulis|author-only)\]|\((rahasia penulis|author-only)\)", title_lower):
+        title_tag = "RAHASIA_PENULIS"
+    elif re.search(r"\[(rahasia karakter)\]", title_lower):
+        title_tag = "RAHASIA_KARAKTER"
+    elif re.search(r"\[rahasia\]|\[privat\]", title_lower):
+        title_tag = "RAHASIA_KARAKTER"
+    elif re.search(r"\[(publik|public|informasi publik)\]", title_lower):
+        title_tag = "INFORMASI_PUBLIK"
 
-    # Patterns for explicit secrets
-    explicit_secret_pat = re.compile(
-        r"^(?:[-*]\s*)?(?:\*\*)?(?:rahasia|rahasia pribadi|privat|secret|motif tersembunyi):?(?:\*\*)?\s*|^\[(?:rahasia|secret|privat)\]\s*",
-        re.IGNORECASE
-    )
+    # 2. Metadata field: Klasifikasi / Akses / Sifat / Kerahasiaan
+    meta_tag = None
+    m_class = re.search(r"(?mi)^[-*]\s*(\*\*)?(?:klasifikasi|sifat|akses|kerahasiaan):?(\*\*)?\s*([^\n]*)", sec_strip)
+    has_owner = bool(re.search(r"(?mi)^[-*]\s*(\*\*)?(?:pemilik rahasia|pemilik):?(\*\*)?\s*([^\n]+)", sec_strip))
 
-    # Patterns for explicit public info
-    explicit_public_pat = re.compile(
-        r"^(?:[-*]\s*)?(?:\*\*)?(?:profil|peran|profesi|hubungan|relasi|publik|latar belakang):?(?:\*\*)?\s*|^\[(?:publik|public)\]\s*",
-        re.IGNORECASE
-    )
-
-    # Patterns for explicit ambiguous info
-    explicit_ambiguous_pat = re.compile(
-        r"^(?:[-*]\s*)?(?:\*\*)?(?:ambigu|catatan ambigu|perlu pemeriksaan):?(?:\*\*)?\s*|^\[(?:ambigu|perlu pemeriksaan)\]\s*",
-        re.IGNORECASE
-    )
-
-    for s in sentences:
-        s_strip = s.strip()
-        if not s_strip:
-            continue
-
-        # 1. Check explicit secret marker
-        if explicit_secret_pat.search(s_strip):
-            clean = explicit_secret_pat.sub("", s_strip).strip()
-            secrets_parts.append(clean if clean else s_strip)
-            continue
-
-        # 2. Check explicit public marker
-        if explicit_public_pat.search(s_strip):
-            clean = explicit_public_pat.sub("", s_strip).strip()
-            public_parts.append(clean if clean else s_strip)
-            continue
-
-        # 3. Check explicit ambiguous marker
-        if explicit_ambiguous_pat.search(s_strip):
-            clean = explicit_ambiguous_pat.sub("", s_strip).strip()
-            ambiguous_parts.append(clean if clean else s_strip)
-            continue
-
-        s_lower = s_strip.lower()
-
-        # 4. Check for unannotated ambiguous concealment or undisclosed plot pacts
-        # Notice: we do NOT match simple adjectives like "pendiam", simple phobias like "takut ketinggian",
-        # nor personal life oaths like "berjanji pada ... untuk", nor general knowledge "mengetahui bahwa ..."
-        is_ambiguous_concealment = (
-            re.search(r"\b(memilih diam|memutuskan (?:untuk )?diam|tidak menceritakan|tidak memberitahu|menyembunyikan|menutup-nutupi)\b", s_lower)
-            or re.search(r"\bmengetahui\b.*\bpernah berjanji\b", s_lower)
-            or re.search(r"\bmemilih diam karena\b", s_lower)
-        )
-
-        if is_ambiguous_concealment:
-            ambiguous_parts.append(s_strip)
+    if m_class is not None:
+        raw_val = m_class.group(3).strip()
+        val = raw_val.lower().strip("*_` ")
+        if not val or val == "-":
+            meta_tag = "PERLU_PEMERIKSAAN"
+        elif val in ("rahasia penulis", "author-only", "author only", "khusus penulis", "hanya penulis", "privat penulis"):
+            if has_owner:
+                meta_tag = "PERLU_PEMERIKSAAN"  # Contradiction: Author-Only cannot have character owner
+            else:
+                meta_tag = "RAHASIA_PENULIS"
+        elif val in ("rahasia karakter", "rahasia", "rahasia pribadi", "privat", "karakter", "character secret"):
+            meta_tag = "RAHASIA_KARAKTER"
+        elif val in ("publik", "public", "informasi publik", "terbuka"):
+            meta_tag = "INFORMASI_PUBLIK"
+        elif "/" in val or "bertentangan" in val or "tidak jelas" in val or "ambigu" in val:
+            meta_tag = "PERLU_PEMERIKSAAN"
         else:
-            public_parts.append(s_strip)
+            meta_tag = "PERLU_PEMERIKSAAN"
 
-    public_info = " ".join(public_parts) if public_parts else (text if not secrets_parts and not ambiguous_parts else "")
-    return public_info, secrets_parts, ambiguous_parts
+    # 3. Status tag: e.g. Status: KANON [RAHASIA PENULIS]
+    status_tag = None
+    m_stat = re.search(r"(?mi)^[-*]\s*(\*\*)?status:?(\*\*)?\s*([^\n]+)", sec_strip)
+    if m_stat:
+        val_stat = m_stat.group(3).lower()
+        if "[rahasia penulis]" in val_stat or "[author-only]" in val_stat:
+            status_tag = "RAHASIA_PENULIS"
+        elif "[rahasia karakter]" in val_stat or "[rahasia]" in val_stat:
+            status_tag = "RAHASIA_KARAKTER"
+
+    # Combine tags to detect contradictions
+    assigned_tags = set(filter(None, [title_tag, meta_tag, status_tag]))
+    if len(assigned_tags) > 1:
+        return "PERLU_PEMERIKSAAN"
+    if len(assigned_tags) == 1:
+        return assigned_tags.pop()
+
+    if has_owner:
+        return "RAHASIA_KARAKTER"
+    return "BELUM_DIKLASIFIKASIKAN"
+
+
+def parse_character_profile(text):
+    """
+    Classify character text into non-overlapping semantic categories:
+    - public: items explicitly marked as Profil, Publik, Hubungan, Peran, Profesi, Relasi, Latar Belakang
+    - character_secrets: items explicitly marked as Rahasia, Rahasia Karakter, Rahasia Pribadi
+    - author_secrets: items explicitly marked as Rahasia Penulis, Author-Only
+    - needs_review: items explicitly marked as Ambigu, Perlu Pemeriksaan, or with conflicting/empty classification
+    - unclassified: untagged sentences or unannotated legacy text
+    """
+    public_parts = []
+    character_secrets_parts = []
+    author_secrets_parts = []
+    needs_review_parts = []
+    unclassified_parts = []
+
+    if not text or not text.strip():
+        return {
+            "public": public_parts,
+            "character_secrets": character_secrets_parts,
+            "author_secrets": author_secrets_parts,
+            "needs_review": needs_review_parts,
+            "unclassified": unclassified_parts,
+        }
+
+    pat_author_sec = re.compile(
+        r"^(?:[-*]\s*)?(?:\*\*)?(?:rahasia penulis|author-only|author only):?(?:\*\*)?\s*|^\[(?:rahasia penulis|author-only)\]\s*",
+        re.I
+    )
+    pat_char_sec = re.compile(
+        r"^(?:[-*]\s*)?(?:\*\*)?(?:rahasia karakter|rahasia pribadi|rahasia|secret):?(?:\*\*)?\s*|^\[(?:rahasia karakter|rahasia)\]\s*",
+        re.I
+    )
+    pat_public = re.compile(
+        r"^(?:[-*]\s*)?(?:\*\*)?(?:profil|publik|hubungan|peran|profesi|relasi|latar belakang):?(?:\*\*)?\s*|^\[(?:publik|public)\]\s*",
+        re.I
+    )
+    pat_review = re.compile(
+        r"^(?:[-*]\s*)?(?:\*\*)?(?:catatan ambigu|perlu pemeriksaan|ambigu):?(?:\*\*)?\s*|^\[(?:ambigu|perlu pemeriksaan)\]\s*",
+        re.I
+    )
+    pat_klasifikasi = re.compile(
+        r"^(?:[-*]\s*)?(?:\*\*)?klasifikasi:?(?:\*\*)?\s*([^\n]*)",
+        re.I
+    )
+
+    raw_lines = [l.strip() for l in text.strip().splitlines() if l.strip()]
+
+    items_to_process = []
+    for l in raw_lines:
+        sub_items = re.split(
+            r"(?<=[.!?])\s+(?=(?:[-*]\s*)?(?:\*\*)?(?:rahasia penulis|author-only|rahasia karakter|rahasia pribadi|rahasia|profil|publik|hubungan|peran|profesi|catatan ambigu|perlu pemeriksaan|klasifikasi):)",
+            l,
+            flags=re.I
+        )
+        for s in sub_items:
+            s_str = s.strip()
+            if s_str:
+                items_to_process.append(s_str)
+
+    for item in items_to_process:
+        m_k = pat_klasifikasi.match(item)
+        if m_k:
+            k_val = m_k.group(1).lower().strip("*_` ")
+            clean_fact = pat_klasifikasi.sub("", item).strip()
+            if not k_val or k_val == "-":
+                needs_review_parts.append(item)
+            elif k_val in ("rahasia penulis", "author-only", "author only"):
+                author_secrets_parts.append(clean_fact if clean_fact else item)
+            elif k_val in ("rahasia karakter", "rahasia", "rahasia pribadi"):
+                character_secrets_parts.append(clean_fact if clean_fact else item)
+            elif k_val in ("publik", "profil", "hubungan", "public"):
+                public_parts.append(clean_fact if clean_fact else item)
+            elif "/" in k_val or "bertentangan" in k_val or "ambigu" in k_val:
+                needs_review_parts.append(item)
+            else:
+                needs_review_parts.append(item)
+            continue
+
+        if pat_author_sec.search(item):
+            clean = pat_author_sec.sub("", item).strip()
+            author_secrets_parts.append(clean if clean else item)
+            continue
+
+        if pat_char_sec.search(item):
+            clean = pat_char_sec.sub("", item).strip()
+            character_secrets_parts.append(clean if clean else item)
+            continue
+
+        if pat_public.search(item):
+            clean = pat_public.sub("", item).strip()
+            public_parts.append(clean if clean else item)
+            continue
+
+        if pat_review.search(item):
+            clean = pat_review.sub("", item).strip()
+            needs_review_parts.append(clean if clean else item)
+            continue
+
+        unclassified_parts.append(item)
+
+    return {
+        "public": public_parts,
+        "character_secrets": character_secrets_parts,
+        "author_secrets": author_secrets_parts,
+        "needs_review": needs_review_parts,
+        "unclassified": unclassified_parts,
+    }
 
 
 def extract_author_secrets(story):
-    """Dynamically extract canonical author-only secrets and unclassified canon from decision-log and/or concept documents."""
-    explicit_secrets = []
+    """
+    Extract decisions from 05-decision-log.md categorized into:
+    - author_secrets (RAHASIA_PENULIS)
+    - character_secrets (RAHASIA_KARAKTER)
+    - unclassified_canon (BELUM_DIKLASIFIKASIKAN)
+    - needs_review_canon (PERLU_PEMERIKSAAN)
+    - public_canon (INFORMASI_PUBLIK)
+    """
+    author_secrets = []
+    character_secrets = []
+    public_canon = []
     unclassified_canon = []
+    needs_review_canon = []
+
     if not story:
-        return explicit_secrets, unclassified_canon
+        return author_secrets, character_secrets, unclassified_canon, needs_review_canon, public_canon
 
     dl_path = story / "05-decision-log.md"
     dl_text = read(dl_path)
@@ -215,23 +335,7 @@ def extract_author_secrets(story):
             lines = sec_strip.splitlines()
             title = lines[0].strip()
 
-            # Check if this decision is explicitly marked as Author-Only Secret
-            is_secret = False
-            title_lower = title.lower()
-            if any(k in title_lower for k in ("[rahasia penulis]", "[author-only]", "[rahasia]", "(rahasia penulis)", "(author-only)")):
-                is_secret = True
-
-            if re.search(r"(?mi)^[-*]\s*(\*\*)?(?:klasifikasi|sifat|akses|kerahasiaan):?(\*\*)?\s*([^\n]+)", sec_strip):
-                m_class = re.search(r"(?mi)^[-*]\s*(\*\*)?(?:klasifikasi|sifat|akses|kerahasiaan):?(\*\*)?\s*([^\n]+)", sec_strip)
-                val = m_class.group(3).lower()
-                if any(k in val for k in ("rahasia", "author-only", "privat", "hanya penulis")):
-                    is_secret = True
-
-            if re.search(r"(?mi)^[-*]\s*(\*\*)?status:?(\*\*)?\s*([^\n]+)", sec_strip):
-                m_stat = re.search(r"(?mi)^[-*]\s*(\*\*)?status:?(\*\*)?\s*([^\n]+)", sec_strip)
-                val_stat = m_stat.group(3).lower()
-                if any(k in val_stat for k in ("rahasia penulis", "author-only", "[rahasia]")):
-                    is_secret = True
+            category = classify_decision_entry(sec_strip)
 
             keputusan_match = re.search(r"(?mi)^[-*]\s*(\*\*)?Keputusan:?(\*\*)?\s*([^\n]+(?:\n(?!\s*[-*]\s*(\*\*|\w+:)|\s*##)[^\n]+)*)", sec_strip)
             if keputusan_match:
@@ -243,13 +347,19 @@ def extract_author_secrets(story):
             else:
                 entry = title
 
-            if is_secret:
-                explicit_secrets.append(entry)
+            if category == "RAHASIA_PENULIS":
+                author_secrets.append(entry)
+            elif category == "RAHASIA_KARAKTER":
+                character_secrets.append(entry)
+            elif category == "INFORMASI_PUBLIK":
+                public_canon.append(entry)
+            elif category == "PERLU_PEMERIKSAAN":
+                needs_review_canon.append(entry)
             else:
                 unclassified_canon.append(entry)
 
-    # Concept document fallback only for explicitly marked secrets
-    if not explicit_secrets:
+    # Concept document fallback ONLY for explicit author-only secret tags
+    if not author_secrets:
         concept_path = story / "01-concept.md"
         c_text = read(concept_path)
         if c_text:
@@ -259,13 +369,13 @@ def extract_author_secrets(story):
                 if not sec_strip:
                     continue
                 header = sec_strip.splitlines()[0].strip()
-                if any(k in header.lower() for k in ("[rahasia penulis]", "[author-only]", "[rahasia]")) or \
-                   re.search(r"(?mi)^[-*]\s*(\*\*)?(?:klasifikasi|sifat|akses):?(\*\*)?\s*([^\n]+(rahasia|author-only))", sec_strip):
+                if any(k in header.lower() for k in ("[rahasia penulis]", "[author-only]")) or \
+                   re.search(r"(?mi)^[-*]\s*(\*\*)?(?:klasifikasi|sifat|akses):?(\*\*)?\s*(rahasia penulis|author-only)", sec_strip):
                     body = " ".join(sec_strip.splitlines()[1:]).strip()
                     if body:
-                        explicit_secrets.append(f"{header}: {' '.join(body.split())}")
+                        author_secrets.append(f"{header}: {' '.join(body.split())}")
 
-    return explicit_secrets, unclassified_canon
+    return author_secrets, character_secrets, unclassified_canon, needs_review_canon, public_canon
 
 
 def normalize_character_name(raw_name, known_names):
@@ -331,15 +441,17 @@ def extract_blueprint_boundaries(blueprint_text, story=None):
                     lines = sec.strip().splitlines()
                     header = lines[0].strip()
                     c_name = re.split(r"[—–-]", header)[0].strip()
-                    body = " ".join(l.strip() for l in lines[1:] if l.strip())
+                    body = "\n".join(l.strip() for l in lines[1:] if l.strip())
                     if c_name and body and not c_name.startswith("#"):
-                        pub_info, sec_parts, amb_parts = parse_character_profile(body)
+                        res = parse_character_profile(body)
                         non_present_profiles[c_name] = {
                             "header": header,
                             "summary": body,
-                            "public_info": pub_info,
-                            "secrets_info": sec_parts,
-                            "ambiguous_info": amb_parts
+                            "public_info": " ".join(res["public"]),
+                            "secrets_info": res["character_secrets"],
+                            "author_secrets": res["author_secrets"],
+                            "unclassified_info": res["unclassified"],
+                            "ambiguous_info": res["needs_review"]
                         }
 
     # Split blueprint into scenes
@@ -697,14 +809,20 @@ def build_context(story, number, rewrite=False):
             if npc in non_profiles:
                 prof = non_profiles[npc]
                 header = prof["header"]
-                public_info = prof.get("public_info", prof.get("summary", ""))
+                public_info = prof.get("public_info", "")
                 secrets_info = prof.get("secrets_info", [])
+                author_secrets = prof.get("author_secrets", [])
+                unclassified_info = prof.get("unclassified_info", [])
                 ambiguous_info = prof.get("ambiguous_info", [])
 
                 chunks.extend([
                     f"#### {header} (Tidak Hadir di Bab Ini)",
-                    f"- **Profil Umum & Hubungan (Referensi Kanon):** {public_info if public_info else '*(Tidak ada profil umum eksplisit)*'}",
                 ])
+                if public_info:
+                    chunks.append(f"- **Profil Umum & Hubungan (Referensi Kanon):** {public_info}")
+                else:
+                    chunks.append("- **Profil Umum & Hubungan (Referensi Kanon):** *(Tidak ada penanda profil umum eksplisit)*")
+
                 if secrets_info:
                     chunks.append("- **Rahasia Pribadi (Eksplisit dari Sumber):**")
                     for s_item in secrets_info:
@@ -712,10 +830,17 @@ def build_context(story, number, rewrite=False):
                 else:
                     chunks.append("- **Rahasia Pribadi (Eksplisit dari Sumber):** *(Tidak ada rahasia pribadi spesifik yang tercatat)*")
 
-                if ambiguous_info:
+                if author_secrets:
+                    chunks.append("- **Rahasia Khusus Penulis (Author-Only dari Profil):**")
+                    for a_sec in author_secrets:
+                        chunks.append(f"  - {a_sec}")
+
+                if unclassified_info or ambiguous_info:
                     chunks.append("- **Informasi Ambigu / Belum Diklasifikasikan (Perlu Pemeriksaan):**")
                     for a_item in ambiguous_info:
-                        chunks.append(f"  - {a_item}")
+                        chunks.append(f"  - {a_item} *(Perlu pemeriksaan: klasifikasi bertentangan/ambigu)*")
+                    for u_item in unclassified_info:
+                        chunks.append(f"  - {u_item} *(Belum diklasifikasikan)*")
 
                 chunks.extend([
                     "- **Batas Isolasi Karakter:**",
@@ -724,7 +849,9 @@ def build_context(story, number, rewrite=False):
                 ])
                 if secrets_info:
                     chunks.append(f"  > [!CAUTION] ISOLASI RAHASIA: Rahasia pribadi eksplisit {npc.upper()} di atas DILARANG dibocorkan ke dalam pikiran, dialog, atau persepsi karakter yang hadir pada bab ini!")
-                if ambiguous_info:
+                if author_secrets:
+                    chunks.append(f"  > [!WARNING] RAHASIA PENULIS: Informasi khusus penulis pada {npc.upper()} di atas DILARANG diketahui karakter atau pembaca!")
+                if unclassified_info or ambiguous_info:
                     chunks.append(f"  > [!NOTE] INFORMASI PERLU PEMERIKSAAN: Untuk catatan ambigu/belum diklasifikasikan di atas, sumber tidak mencatat siapa saja yang mengetahuinya; jangan mengasumsikan seluruh karakter hadir otomatis tahu atau otomatis tidak tahu, melainkan batasi sesuai bukti nyata dalam blueprint bab ini.")
                 chunks.append("")
             else:
@@ -802,7 +929,7 @@ def build_context(story, number, rewrite=False):
         "",
         "### Rahasia yang HANYA DIKETAHUI PENULIS (Author-Only Secrets):",
     ])
-    author_secrets, unclassified_canon = extract_author_secrets(story)
+    author_secrets, character_secrets, unclassified_canon, needs_review_canon, public_canon = extract_author_secrets(story)
     if author_secrets:
         for s in author_secrets:
             chunks.append(f"- {s}")
@@ -816,6 +943,22 @@ def build_context(story, number, rewrite=False):
             ""
         ])
 
+    if character_secrets:
+        chunks.extend([
+            "### Rahasia Karakter dalam Dokumen Keputusan (Bukan Rahasia Penulis):",
+        ])
+        for cs in character_secrets:
+            chunks.append(f"- {cs} *(Rahasia karakter; tidak otomatis menjadi rahasia penulis atau diketahui karakter lain)*")
+        chunks.append("")
+
+    if needs_review_canon:
+        chunks.extend([
+            "### Keputusan Kanon Perlu Pemeriksaan (Klasifikasi Kosong atau Bertentangan):",
+        ])
+        for nr in needs_review_canon:
+            chunks.append(f"- {nr} *(Klasifikasi tidak jelas atau bertentangan; tandai untuk pemeriksaan)*")
+        chunks.append("")
+
     if unclassified_canon:
         chunks.extend([
             "### Keputusan Kanon Tanpa Klasifikasi Kerahasiaan (Status Terbuka / Belum Ditentukan):",
@@ -827,6 +970,14 @@ def build_context(story, number, rewrite=False):
             "> Jangan membocorkan resolusi akhir atau rahasia masa depan ke bab awal, namun jangan membatasi pengungkapan fakta yang secara sah diizinkan oleh blueprint bab ini.",
             ""
         ])
+
+    if public_canon:
+        chunks.extend([
+            "### Keputusan Kanon Publik (Informasi Terbuka):",
+        ])
+        for pc in public_canon:
+            chunks.append(f"- {pc}")
+        chunks.append("")
 
     # 6. Konteks Kontinuitas dan Rekam Peristiwa
     chunks.extend([

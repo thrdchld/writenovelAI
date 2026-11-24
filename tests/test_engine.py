@@ -670,6 +670,157 @@ class EngineTests(unittest.TestCase):
             build_context(self.story_a, 1, rewrite=False)
         self.assertIn("File target sudah ada", str(cm.exception))
 
+    # ==========================================================
+    # 5. Pengujian Baru Tahap 3E
+    # ==========================================================
+
+    def test_3e_01_decision_log_classification_rigor(self):
+        """3E-1: Uji ketat klasifikasi Decision Log (Author-Only vs Karakter vs Publik vs Review)."""
+        (self.story_a / "05-decision-log.md").write_text(
+            "# Decision Log Uji 3E\n\n"
+            "## D-010 — Rahasia Penulis Murni\n"
+            "- **Status:** KANON\n"
+            "- **Klasifikasi:** Rahasia Penulis\n"
+            "- **Keputusan:** Hanya penulis yang tahu dalang sebenarnya adalah pejabat kementerian.\n\n"
+            "## D-020 — Rahasia Milik Karakter\n"
+            "- **Status:** KANON\n"
+            "- **Klasifikasi:** Rahasia Karakter\n"
+            "- **Pemilik Rahasia:** Maya Indah\n"
+            "- **Keputusan:** Maya diam-diam menyimpan salinan kunci brankas digital.\n\n"
+            "## D-030 — Rahasia Berstatus Tag Bracket [RAHASIA]\n"
+            "- **Status:** KANON [RAHASIA]\n"
+            "- **Keputusan:** Arya pernah diberhentikan dari kepolisian karena investigasi ilegal.\n\n"
+            "## D-040 — Informasi Publik Dinyatakan Terbuka\n"
+            "- **Status:** KANON\n"
+            "- **Klasifikasi:** Publik\n"
+            "- **Keputusan:** Kantor cabang resmi dibuka pada tahun 2015.\n\n"
+            "## D-050 — Keputusan Kanon Tanpa Klasifikasi\n"
+            "- **Status:** KANON\n"
+            "- **Keputusan:** Format berkas audit menggunakan standar ISO.\n\n"
+            "## D-060 — Klasifikasi Kosong\n"
+            "- **Status:** KANON\n"
+            "- **Klasifikasi:**\n"
+            "- **Keputusan:** Pengarsipan digital diperbarui setiap bulan.\n\n"
+            "## D-070 — Klasifikasi Bertentangan [RAHASIA PENULIS]\n"
+            "- **Status:** KANON\n"
+            "- **Klasifikasi:** Publik\n"
+            "- **Keputusan:** Bukti fisik disembunyikan di bawah lantai ruang arsip.\n",
+            encoding="utf-8"
+        )
+        ctx = build_context(self.story_a, 1)
+        sec5 = ctx[ctx.find("## 5. BATAS INFORMASI PEMBACA BAB 1"):]
+
+        author_sec = sec5[sec5.find("### Rahasia yang HANYA DIKETAHUI PENULIS (Author-Only Secrets):"):sec5.find("### Rahasia Karakter")]
+        char_sec = sec5[sec5.find("### Rahasia Karakter dalam Dokumen Keputusan (Bukan Rahasia Penulis):"):sec5.find("### Keputusan Kanon Perlu Pemeriksaan")]
+        review_sec = sec5[sec5.find("### Keputusan Kanon Perlu Pemeriksaan (Klasifikasi Kosong atau Bertentangan):"):sec5.find("### Keputusan Kanon Tanpa Klasifikasi")]
+        unclassified_sec = sec5[sec5.find("### Keputusan Kanon Tanpa Klasifikasi Kerahasiaan (Status Terbuka / Belum Ditentukan):"):sec5.find("### Keputusan Kanon Publik")]
+        public_sec = sec5[sec5.find("### Keputusan Kanon Publik (Informasi Terbuka):"):]
+
+        # 1. Klasifikasi: Rahasia Penulis masuk Author-Only
+        self.assertIn("D-010 — Rahasia Penulis Murni", author_sec)
+        self.assertIn("pejabat kementerian", author_sec)
+
+        # 2. Klasifikasi: Rahasia Karakter TIDAK masuk Author-Only, masuk Rahasia Karakter
+        self.assertNotIn("D-020 — Rahasia Milik Karakter", author_sec)
+        self.assertIn("D-020 — Rahasia Milik Karakter", char_sec)
+        self.assertIn("Maya diam-diam menyimpan salinan kunci", char_sec)
+
+        # 3. [RAHASIA] TIDAK otomatis masuk Author-Only, masuk Rahasia Karakter
+        self.assertNotIn("D-030 — Rahasia Berstatus Tag Bracket", author_sec)
+        self.assertIn("D-030 — Rahasia Berstatus Tag Bracket", char_sec)
+        self.assertIn("Arya pernah diberhentikan dari kepolisian", char_sec)
+
+        # 4. Klasifikasi: Publik TIDAK masuk Author-Only, masuk Publik
+        self.assertNotIn("D-040 — Informasi Publik Dinyatakan Terbuka", author_sec)
+        self.assertIn("D-040 — Informasi Publik Dinyatakan Terbuka", public_sec)
+
+        # 5. Keputusan KANON tanpa klasifikasi TIDAK masuk Author-Only, masuk Belum Diklasifikasikan
+        self.assertNotIn("D-050 — Keputusan Kanon Tanpa Klasifikasi", author_sec)
+        self.assertIn("D-050 — Keputusan Kanon Tanpa Klasifikasi", unclassified_sec)
+
+        # 6. Klasifikasi kosong atau bertentangan masuk ke Perlu Pemeriksaan
+        self.assertIn("D-060 — Klasifikasi Kosong", review_sec)
+        self.assertIn("D-070 — Klasifikasi Bertentangan", review_sec)
+
+    def test_3e_02_character_profile_classification_cases(self):
+        """3E-2: Uji klasifikasi profil karakter (Rahasia Karakter, Author-Only, Profil Umum, Unclassified, Ambigu)."""
+        (self.story_a / "02-characters.md").write_text(
+            "# Karakter Cerita A Uji 3E\n\n"
+            "## Arya Pratama — 34\n"
+            "- **Profil:** Detektif swasta spesialis audit forensik.\n\n"
+            "## Maya Indah — 28\n"
+            "- **Profil:** Akuntan forensik rekan kerja Arya.\n\n"
+            "## Kepala Cabang — 52\n"
+            "- **Profil:** Pimpinan kantor cabang.\n\n"
+            "## Saksi Kunci — 40\n"
+            "Profil: Ia bekerja sebagai arsiparis.\n"
+            "Rahasia: Ia memindahkan dokumen sebelum audit.\n"
+            "Rahasia Penulis: Ia mengetahui hasil akhir sejak awal.\n"
+            "Ia menyembunyikan berkas audit di loteng.\n"
+            "Ia gemar merawat kebun mawar di akhir pekan.\n"
+            "- **Catatan Ambigu:** Keterangannya mengenai tanggal rapat saling bertentangan.\n",
+            encoding="utf-8"
+        )
+        ctx = build_context(self.story_a, 1)
+        saksi_sec = ctx[ctx.find("#### Saksi Kunci — 40"):ctx.find("### C. Catatan Pengetahuan Ambigu")]
+
+        # 1. Profil: ... masuk profil umum
+        self.assertIn("- **Profil Umum & Hubungan (Referensi Kanon):** Ia bekerja sebagai arsiparis.", saksi_sec)
+
+        # 2. Rahasia: ... masuk rahasia karakter
+        self.assertIn("- **Rahasia Pribadi (Eksplisit dari Sumber):**", saksi_sec)
+        self.assertIn("Ia memindahkan dokumen sebelum audit.", saksi_sec)
+
+        # 3. Rahasia Penulis: ... masuk rahasia khusus penulis profil
+        self.assertIn("- **Rahasia Khusus Penulis (Author-Only dari Profil):**", saksi_sec)
+        self.assertIn("Ia mengetahui hasil akhir sejak awal.", saksi_sec)
+
+        # 4. Kalimat tanpa penanda menyembunyikan info TIDAK boleh otomatis menjadi publik
+        self.assertNotIn("Ia menyembunyikan berkas audit di loteng.", saksi_sec.split("- **Rahasia")[0])
+
+        # 5. Kalimat tanpa penanda fakta biasa TIDAK boleh otomatis dianggap diketahui semua karakter
+        # Keduanya masuk ke Informasi Ambigu / Belum Diklasifikasikan
+        self.assertIn("- **Informasi Ambigu / Belum Diklasifikasikan (Perlu Pemeriksaan):**", saksi_sec)
+        self.assertIn("Ia menyembunyikan berkas audit di loteng. *(Belum diklasifikasikan)*", saksi_sec)
+        self.assertIn("Ia gemar merawat kebun mawar di akhir pekan. *(Belum diklasifikasikan)*", saksi_sec)
+
+        # 6. Catatan Ambigu masuk ke Perlu Pemeriksaan
+        self.assertIn("Keterangannya mengenai tanggal rapat saling bertentangan. *(Perlu pemeriksaan", saksi_sec)
+
+    def test_3e_03_secret_ownership_separated_from_access(self):
+        """3E-3: Pemisahan tegas antara fakta kanon, siapa yang tahu (ownership), dan batas pembaca."""
+        (self.story_a / "05-decision-log.md").write_text(
+            "# Decision Log\n\n"
+            "## D-001 — Rahasia Pembelian Tanah Yayasan\n"
+            "- **Status:** KANON\n"
+            "- **Klasifikasi:** Rahasia Karakter\n"
+            "- **Pemilik Rahasia:** Maya Indah\n"
+            "- **Keputusan:** Maya membeli tanah yayasan atas nama adiknya.\n",
+            encoding="utf-8"
+        )
+        ctx = build_context(self.story_a, 1)
+
+        # 1. Rahasia Maya (karakter hadir) tidak otomatis menjadi rahasia penulis
+        sec5_author = ctx[ctx.find("### Rahasia yang HANYA DIKETAHUI PENULIS"):ctx.find("### Rahasia Karakter")]
+        self.assertNotIn("Rahasia Pembelian Tanah Yayasan", sec5_author)
+
+        # 2. Rahasia Maya tidak otomatis masuk pengetahuan Arya atau Kepala Cabang di Bab 1
+        arya_sec = ctx[ctx.find("#### Arya Pratama"):ctx.find("#### Maya Indah")]
+        kepala_sec = ctx[ctx.find("#### Kepala Cabang"):ctx.find("### B. Karakter yang Tidak Hadir")]
+        self.assertNotIn("membeli tanah yayasan", arya_sec)
+        self.assertNotIn("membeli tanah yayasan", kepala_sec)
+
+        # 3. Informasi ditahan dari pembaca tidak membuat POV Arya otomatis tidak tahu fakta yang sah ia ketahui
+        sec5_reader = ctx[ctx.find("## 5. BATAS INFORMASI PEMBACA BAB 1"):]
+        self.assertIn("Alasan Arya mencurigai keterlibatan direktur ditahan dari pembaca", sec5_reader)
+        self.assertIn("Arya tahu selisih laporan kas", arya_sec)
+
+        # 4. Hubungan umum seperti keluarga tidak diisolasi sebagai rahasia
+        self.assertIn("Paman Maya", ctx)
+        # Rahasia karakter tetap tercatat dalam kanon keputusan di bagian rahasia karakter
+        self.assertIn("### Rahasia Karakter dalam Dokumen Keputusan", ctx)
+        self.assertIn("Maya membeli tanah yayasan atas nama adiknya.", ctx)
+
 
 if __name__ == "__main__":
     unittest.main()
