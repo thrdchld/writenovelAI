@@ -123,7 +123,7 @@ def build_context(story, number, rewrite=False):
     ]
     chunks = [f"# PAKET KONTEKS BAB {number:03d}", "",
               f"Proyek: {story.name}",
-              f"Target naskah: {target.relative_to(ROOT)}",
+              f"Target naskah: {display_path(target)}",
               f"Target State Update: {display_path(state_update(story, number))}",
               "Gunakan sumber di bawah sebagai sumber kebenaran. Bedakan KANON, WAJIB, FLEKSIBEL, dan BELUM DIPUTUSKAN.",
               "Jangan menyimpulkan fakta yang tidak didukung sumber. Jika ada konflik yang memengaruhi cerita, laporkan dan jangan menebak.",
