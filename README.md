@@ -66,48 +66,29 @@ GitHub menyimpan dan melacak pekerjaan; GitHub tidak dengan sendirinya menjalank
 
 Repository ini adalah knowledge base dan workspace dokumentasi. Metode sudah memiliki instruksi operasional, tetapi konsistensinya tetap harus dibuktikan melalui uji premis lintas genre, penulisan bab, dan audit/perbaikan.
 
-## Pengelola bab interaktif
+## Pengelola penulisan bab
 
-Untuk melihat status penulisan, menyiapkan konteks bab, atau menghapus naskah bab, jalankan dari folder utama repository:
+Program `novel.py` adalah jalur operasional untuk mengelola dan menjalankan penulisan bab melalui Antigravity CLI.
 
-```bash
-python novel.py
-```
-
-Menu:
-1. Lihat status semua bab.
-2. Siapkan penulisan atau revisi bab yang dipilih.
-3. Hapus naskah bab yang dipilih (memerlukan konfirmasi).
-4. Ganti proyek novel.
-0. Keluar.
-
-Saat memilih penulisan, program menggabungkan instruksi, dokumen inti novel, blueprint bab, dan naskah bab sebelumnya (jika tersedia) ke file `stories/<slug>/workbench/write-chapter-NNN.md`. Setelah itu minta Antigravity membaca file tersebut dan menulis ke folder `manuscript/`.
-
-**Batasan yang perlu diketahui:** program Python ini tidak menghasilkan prosa dan tidak menjalankan model AI. Fungsinya mengelola status dan menyiapkan konteks. Status SELESAI hanya berarti file naskah bab ada dan tidak kosong, bukan berarti bab sudah lolos audit atau layak terbit. Penghapusan hanya menghapus file naskah bab, bukan blueprint.
-
-## Pengelola penulisan bab interaktif
-
-Jalankan dari folder utama repository:
+Jalankan dari direktori utama repository:
 
 ```bash
 python novel.py
 ```
 
-Menu menyediakan status bab, penulisan satu bab, penulisan beberapa bab berurutan, rewrite dengan konfirmasi, dan penghapusan naskah dengan konfirmasi.
+Menu menyediakan:
+1. Melihat status semua bab.
+2. Menulis atau me-rewrite satu bab.
+3. Menulis beberapa bab secara berurutan.
+4. Menghapus naskah bab dengan konfirmasi.
+5. Berpindah proyek novel.
 
-Saat menulis, Python mengumpulkan dokumen inti, blueprint bab, bab sebelumnya, dan catatan kontinuitas. Python menyimpan prompt di folder workbench, lalu menjalankan Antigravity CLI melalui mode headless:
+Saat menulis, program mengumpulkan instruksi, dokumen inti novel, blueprint bab, naskah bab sebelumnya, serta catatan kontinuitas. Program menyimpan prompt di `stories/<slug>/workbench/`, lalu menjalankan satu proses Antigravity CLI untuk bab tersebut. Dalam mode batch, bab berikutnya baru dimulai setelah proses sebelumnya selesai dan file naskah berhasil diverifikasi.
 
-```bash
-agy -p "prompt bab" --output-format json
-```
+Jika AGY gagal, permission menolak penulisan, atau terdeteksi kuota/rate limit, batch dihentikan. Bab yang sudah berhasil tetap tersimpan. Bab yang sudah memiliki naskah akan ditawarkan untuk rewrite atau dilewati.
 
-Untuk batch, setiap bab dijalankan sebagai satu proses AGY tersendiri. Bab berikutnya baru dimulai setelah proses sebelumnya selesai dan file naskahnya terdeteksi. Jika AGY mengembalikan error atau indikasi quota/rate limit, batch dihentikan; bab yang sudah selesai tidak diulang otomatis. Bab yang sudah ada akan ditawarkan untuk rewrite atau dilewati. Penghapusan hanya menghapus file naskah, bukan blueprint atau state update.
+**Prasyarat:** Python 3, Antigravity CLI terpasang dan terautentikasi, serta perintah `agy` tersedia di PATH. Jalankan dari salinan repository yang dapat ditulis.
 
-Setiap prompt juga meminta AGY membuat state update faktual agar dapat dipakai sebagai konteks bab selanjutnya. Program akan memberi peringatan jika file state update tidak dibuat.
+**Catatan:** program ini mengorkestrasi AGY untuk menulis, bukan sekadar menyiapkan prompt. Status selesai hanya memverifikasi bahwa file naskah ada dan tidak kosong; status tersebut bukan hasil audit kualitas. State Update yang tidak dibuat akan ditandai sebagai peringatan.
 
-**Syarat dan batasan:**
-- Antigravity CLI harus terpasang, sudah terautentikasi, dan perintah `agy` dapat dipanggil dari terminal.
-- Mode headless menggunakan kredensial yang sudah tersimpan. Hak akses penulisan file mengikuti konfigurasi permission Antigravity CLI. Jika tool penulisan ditolak, program akan mendeteksi bahwa file naskah tidak muncul dan menghentikan batch.
-- Deteksi limit menggunakan kode keluar dan kata kunci pesan error. Pesan limit yang tidak menyebut pola umum mungkin terbaca sebagai error biasa, tetapi batch tetap dihentikan.
-- Status SELESAI hanya berarti file naskah ada dan tidak kosong, bukan berarti bab sudah lolos audit atau layak terbit.
-
+AI yang memiliki akses terminal ke lingkungan repository harus mengikuti prosedur pada [AI_INSTRUCTIONS.md](AI_INSTRUCTIONS.md). Akses GitHub saja tidak otomatis memberi kemampuan menjalankan program atau Antigravity CLI.
