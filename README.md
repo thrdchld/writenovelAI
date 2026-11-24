@@ -66,29 +66,46 @@ GitHub menyimpan dan melacak pekerjaan; GitHub tidak dengan sendirinya menjalank
 
 Repository ini adalah knowledge base dan workspace dokumentasi. Metode sudah memiliki instruksi operasional, tetapi konsistensinya tetap harus dibuktikan melalui uji premis lintas genre, penulisan bab, dan audit/perbaikan.
 
-## Pengelola penulisan bab
+## Pengelola data dan penulisan bab
 
-Program `novel.py` adalah jalur operasional untuk mengelola dan menjalankan penulisan bab melalui Antigravity CLI.
+Program `novel.py` mendukung dua jalur kerja:
 
-Jalankan dari direktori utama repository:
+### 1. AI menulis, Python mengambil data
+
+AI dapat menulis bab secara langsung dengan meminta Python menyiapkan paket konteks terlebih dahulu. Jalankan dari direktori utama repository:
+
+```bash
+python novel.py --context 5 --story nama-folder-novel
+```
+
+Python membuat `stories/<slug>/workbench/context-chapter-005.md`. Paket ini berisi instruksi, standar prosa, README proyek, dokumen inti, blueprint bab, bab sebelumnya, serta catatan kontinuitas yang relevan. State Update dari bab setelah target tidak disertakan.
+
+AI membaca paket tersebut, menulis naskah ke `manuscript/chapter-005.md`, membuat State Update ke `state-updates/chapter-005.md`, lalu meminta Python memeriksa hasil:
+
+```bash
+python novel.py --verify 5 --story nama-folder-novel
+python novel.py --status --story nama-folder-novel
+```
+
+Untuk batch, AI mengulang proses satu bab demi satu bab. Bab selanjutnya baru diproses setelah naskah dan State Update bab sebelumnya tersimpan.
+
+### 2. Python menjalankan AGY
+
+Jika ingin program yang mengendalikan penulisan melalui Antigravity CLI, jalankan:
 
 ```bash
 python novel.py
 ```
 
-Menu menyediakan:
-1. Melihat status semua bab.
-2. Menulis atau me-rewrite satu bab.
-3. Menulis beberapa bab secara berurutan.
-4. Menghapus naskah bab dengan konfirmasi.
-5. Berpindah proyek novel.
+Menu interaktif menyediakan status bab, penulisan satu bab, penulisan beberapa bab berurutan, penghapusan dengan konfirmasi, dan pemilihan proyek. Dalam jalur ini Python menyiapkan prompt lalu menjalankan AGY satu proses per bab. Batch berhenti jika AGY gagal, limit terdeteksi, atau file naskah tidak berhasil diverifikasi.
 
-Saat menulis, program mengumpulkan instruksi, dokumen inti novel, blueprint bab, naskah bab sebelumnya, serta catatan kontinuitas. Program menyimpan prompt di `stories/<slug>/workbench/`, lalu menjalankan satu proses Antigravity CLI untuk bab tersebut. Dalam mode batch, bab berikutnya baru dimulai setelah proses sebelumnya selesai dan file naskah berhasil diverifikasi.
+### Perintah dan prasyarat
 
-Jika AGY gagal, permission menolak penulisan, atau terdeteksi kuota/rate limit, batch dihentikan. Bab yang sudah berhasil tetap tersimpan. Bab yang sudah memiliki naskah akan ditawarkan untuk rewrite atau dilewati.
+- `python novel.py --status --story SLUG`: melihat status bab.
+- `python novel.py --context NOMOR --story SLUG`: menyiapkan paket konteks untuk AI.
+- `python novel.py --verify NOMOR --story SLUG`: memeriksa naskah dan State Update.
+- `python novel.py`: membuka menu interaktif yang menjalankan AGY.
 
-**Prasyarat:** Python 3, Antigravity CLI terpasang dan terautentikasi, serta perintah `agy` tersedia di PATH. Jalankan dari salinan repository yang dapat ditulis.
+Python 3 diperlukan untuk semua jalur. Antigravity CLI (`agy`) yang terpasang dan terautentikasi hanya diperlukan untuk jalur menu interaktif. Jika terdapat beberapa proyek, tentukan nama folder dengan `--story`.
 
-**Catatan:** program ini mengorkestrasi AGY untuk menulis, bukan sekadar menyiapkan prompt. Status selesai hanya memverifikasi bahwa file naskah ada dan tidak kosong; status tersebut bukan hasil audit kualitas. State Update yang tidak dibuat akan ditandai sebagai peringatan.
-
-AI yang memiliki akses terminal ke lingkungan repository harus mengikuti prosedur pada [AI_INSTRUCTIONS.md](AI_INSTRUCTIONS.md). Akses GitHub saja tidak otomatis memberi kemampuan menjalankan program atau Antigravity CLI.
+**Batas verifikasi:** perintah `--verify` hanya memeriksa bahwa file naskah ada dan tidak kosong serta memberi peringatan jika State Update belum tersedia. Ia tidak menilai kualitas tulisan, kesesuaian blueprint, atau kelulusan audit. AI tetap bertanggung jawab melakukan pemeriksaan isi.
