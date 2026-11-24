@@ -518,7 +518,7 @@ def interactive_main():
 
 if __name__ == "__main__":
     try:
-        main()
+        sys.exit(command_line())
     except KeyboardInterrupt:
         print("\nDihentikan.")
-        sys.exit(0)
+        sys.exit(130)
