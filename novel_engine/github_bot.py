@@ -9,7 +9,9 @@ from pathlib import Path
 
 from .project import ROOT, resolve_story, build_context, manuscript, state_update, read
 from .audit import outline_audit_prompt, deterministic_audit
-from .cli import status, verify
+from .cli import verify
+from .agy import parse_numbers
+from .project import chapter_numbers
 
 
 def request_json(url, payload, headers, timeout=600):
@@ -102,36 +104,48 @@ def handle(repo, issue_number, command):
         sha = commit_paths([out], f"Add AI outline audit for {story.name}")
         return f"Audit selesai dan disimpan di `{out.relative_to(ROOT)}`. Commit: `{sha}`. Audit ini berupa temuan, bukan perubahan canon."
 
-    if action == "write" and len(parts) == 4 and parts[3].isdigit():
+    if action == "write" and len(parts) == 4:
         story = resolve_story(parts[2])
-        number = int(parts[3])
-        target = manuscript(story, number)
-        state = state_update(story, number)
-        if target.exists() or state.exists():
-            raise FileExistsError("Naskah atau State Update sudah ada; bot tidak akan menimpa file. Gunakan alur rewrite terkontrol secara lokal.")
-        context = build_context(story, number, rewrite=False)
-        answer = call_model(
-            "Anda penulis novel profesional. Gunakan hanya fakta dan keputusan yang didukung paket konteks. "
-            "Jangan ubah canon. Tulis prosa natural, paragraf normal. "
-            "Kembalikan HANYA JSON valid dengan dua string: manuscript dan state_update. "
-            "manuscript adalah naskah bab lengkap. state_update hanya fakta yang benar-benar terjadi di naskah.",
-            context + "\n\nKembalikan JSON dengan schema: {\"manuscript\": \"...\", \"state_update\": \"...\"}"
-        )
-        result = extract_json(answer)
-        prose = result.get("manuscript", "").strip()
-        update = result.get("state_update", "").strip()
-        if not prose or not update:
-            raise ValueError("Respons AI tidak lengkap; tidak ada file yang ditulis.")
-        target.parent.mkdir(parents=True, exist_ok=True)
-        state.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(prose + "\n", encoding="utf-8")
-        state.write_text(update + "\n", encoding="utf-8")
-        if verify(story, number) != 0:
-            target.unlink(missing_ok=True)
-            state.unlink(missing_ok=True)
-            raise RuntimeError("Verifikasi file gagal; hasil dibatalkan.")
-        sha = commit_paths([target, state], f"Write chapter {number:03d} for {story.name}")
-        return f"Bab {number} dan State Update berhasil disimpan. Commit: `{sha}`. Ini belum berarti bab lolos audit naratif."
+        numbers = parse_numbers(parts[3], chapter_numbers(story))
+        if not numbers:
+            raise ValueError("Nomor bab tidak valid. Gunakan satu nomor, rentang, atau daftar seperti 1-5,8.")
+        completed, skipped = [], []
+        for number in numbers:
+            target = manuscript(story, number)
+            state = state_update(story, number)
+            if target.exists() or state.exists():
+                skipped.append(number)
+                continue
+            try:
+                context = build_context(story, number, rewrite=False)
+                answer = call_model(
+                    "Anda penulis novel profesional. Gunakan hanya fakta dan keputusan yang didukung paket konteks. "
+                    "Jangan ubah canon. Tulis prosa natural, paragraf normal. "
+                    "Kembalikan HANYA JSON valid dengan dua string: manuscript dan state_update. "
+                    "manuscript adalah naskah bab lengkap. state_update hanya fakta yang benar-benar terjadi di naskah.",
+                    context + "\\n\\nKembalikan JSON dengan schema: {\\"manuscript\\": \\"...\\", \\"state_update\\": \\"...\\"}"
+                )
+                result = extract_json(answer)
+                prose = result.get("manuscript", "").strip()
+                update = result.get("state_update", "").strip()
+                if not prose or not update:
+                    raise ValueError("Respons AI tidak lengkap.")
+                target.parent.mkdir(parents=True, exist_ok=True)
+                state.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(prose + "\\n", encoding="utf-8")
+                state.write_text(update + "\\n", encoding="utf-8")
+                if verify(story, number) != 0:
+                    target.unlink(missing_ok=True)
+                    state.unlink(missing_ok=True)
+                    raise RuntimeError("Verifikasi file gagal; hasil bab ini dibatalkan.")
+                sha = commit_paths([target, state], f"Write chapter {number:03d} for {story.name}")
+                completed.append((number, sha))
+            except Exception as exc:
+                done = ", ".join(str(n) for n, _ in completed) or "-"
+                raise RuntimeError(f"Batch berhenti pada Bab {number}: {exc}. Bab yang sudah tersimpan: {done}.") from exc
+        done_text = ", ".join(f"{n} (commit {sha})" for n, sha in completed) or "-"
+        skipped_text = ", ".join(map(str, skipped)) or "-"
+        return f"Batch selesai. Bab tersimpan: {done_text}. Bab dilewati karena file sudah ada: {skipped_text}. Hasil tetap perlu audit naratif."
     raise ValueError("Perintah tidak dikenali. Gunakan: @novelbot status SLUG, @novelbot audit SLUG, atau @novelbot write SLUG NOMOR_BAB.")
 
 
