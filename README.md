@@ -1,114 +1,73 @@
 # writenovelAI
 
-Kerangka kerja sekaligus workspace GitHub untuk mengembangkan dan menulis novel dengan bantuan AI secara terarah, konsisten, dan tetap nyaman dibaca.
+Sistem kerja penulisan novel berbantuan AI. Python mengelola sumber cerita, memori, konteks, pemeriksaan struktural, dan eksekusi. AI menangani pemahaman naratif, keputusan kreatif, audit interpretatif, dan penulisan prosa.
 
-Repository ini memiliki dua fungsi:
-- **Knowledge base AI:** instruksi operasional, metode, standar, dan template yang harus dibaca AI sebelum bekerja.
-- **Workspace penulisan:** tempat menyimpan premis, rancangan, blueprint, naskah per bab, kontinuitas, keputusan, dan audit setiap novel.
+## Mulai
 
-## Mulai dari premis
-
-Pengguna cukup memberikan premis. AI bertanggung jawab mengembangkan konsep, karakter, dunia, alur, jumlah bab, blueprint, penulisan, kontinuitas, dan audit. Detail opsional boleh diberikan pengguna, tetapi bukan prasyarat.
-
-**Instruksi wajib AI:** [AI_INSTRUCTIONS.md](AI_INSTRUCTIONS.md)
-
-## Prinsip utama
-
-1. Cerita lebih dulu, kalimat kemudian.
-2. Blueprint mengendalikan logika, bukan setiap kalimat.
-3. Tidak ada jumlah bab baku; jumlah mengikuti kebutuhan cerita.
-4. Kronologi berbeda dari urutan penyajian.
-5. Kontinuitas dicatat secara selektif dan berbasis fakta.
-6. Audit harus menunjukkan bukti.
-7. Perbaikan sekecil mungkin.
-8. Kualitas cerita dan kualitas prosa dinilai terpisah.
-9. Targetnya novel yang layak dibaca, bukan kesempurnaan tanpa akhir.
-
-## Metodologi
-
-- [Alur kerja novel](docs/01-workflow.md)
-- [Scene Blueprint](docs/02-scene-blueprint.md)
-- [Kontinuitas dan State Update](docs/03-continuity.md)
-- [Audit dan perbaikan minimal](docs/04-audit-and-repair.md)
-- [Standar penulisan prosa](docs/05-writing-standard.md)
-- [Kontrak operasional AI dan quality gates](docs/06-ai-operating-contract.md)
-- [GitHub sebagai workspace penulisan](docs/07-github-writing-workspace.md)
-
-## Template
-
-- [Dashboard proyek novel](templates/novel-project-readme-template.md)
-- [Template Scene Blueprint](templates/scene-blueprint-template.md)
-- [Template State Update](templates/state-update-template.md)
-- [Template laporan audit](templates/audit-report-template.md)
-- [Template decision log](templates/decision-log-template.md)
-- [Template paket konteks bab](templates/chapter-context-template.md)
-
-## Struktur proyek novel
-
-Setiap novel disimpan terpisah di `stories/<slug-judul>/`. Folder itu menjadi sumber kebenaran untuk naskah dan seluruh keputusan cerita. Gunakan struktur dan aturan di [panduan workspace](docs/07-github-writing-workspace.md).
-
-## Contoh pengujian metode
-
-- [Salah Kirim: drama keseharian dan perubahan karakter](examples/salah-kirim.md)
-- [Arman dan Mira: misteri, in medias res, flashback, dan pengetahuan tokoh](examples/arman-mira.md)
-
-## Cara menggunakan
-
-1. Berikan premis kepada AI yang memiliki akses repository.
-2. Pastikan AI membaca `AI_INSTRUCTIONS.md`.
-3. AI membuat folder proyek novel dan mengembangkan rancangan.
-4. Setelah rancangan siap, AI menulis satu bab per siklus.
-5. Setiap perubahan penting, State Update, dan audit disimpan ke GitHub.
-
-GitHub menyimpan dan melacak pekerjaan; GitHub tidak dengan sendirinya menjalankan AI atau menjamin kualitas tulisan. Model yang tidak memiliki akses repository harus diberi file/konteks yang relevan secara manual.
-
-## Status
-
-Repository ini adalah knowledge base dan workspace dokumentasi. Metode sudah memiliki instruksi operasional, tetapi konsistensinya tetap harus dibuktikan melalui uji premis lintas genre, penulisan bab, dan audit/perbaikan.
-
-## Pengelola data dan penulisan bab
-
-Program `novel.py` mendukung dua jalur kerja:
-
-### 1. AI menulis, Python mengambil data
-
-AI dapat menulis bab secara langsung dengan meminta Python menyiapkan paket konteks terlebih dahulu. Jalankan dari direktori utama repository:
+Python 3.11+ direkomendasikan. Tidak ada dependensi pihak ketiga untuk mesin inti.
 
 ```bash
-python novel.py --context 5 --story nama-folder-novel
+python novel.py --story gang-yang-hilang-dari-peta status
+python novel.py --story gang-yang-hilang-dari-peta memory
+python novel.py --story gang-yang-hilang-dari-peta context 5
+python novel.py --story gang-yang-hilang-dari-peta audit
+python novel.py --story gang-yang-hilang-dari-peta audit --prompt
+python novel.py --story gang-yang-hilang-dari-peta verify 5
 ```
 
-Python membuat `stories/<slug>/workbench/context-chapter-005.md`. Paket ini berisi instruksi, standar prosa, README proyek, dokumen inti, blueprint bab, bab sebelumnya, serta catatan kontinuitas yang relevan. State Update dari bab setelah target tidak disertakan.
+Urutan argumen: `python novel.py --story SLUG PERINTAH`. Jika hanya ada satu proyek, `--story` boleh dihilangkan.
 
-Jika target naskah sudah ada, Python menolak menyiapkan konteks agar AI tidak menimpanya tanpa sengaja. Rewrite hanya dilakukan dengan persetujuan eksplisit dan opsi `--rewrite`.
+## Alur kerja
 
-AI membaca paket tersebut, menulis naskah ke `manuscript/chapter-005.md`, membuat State Update ke `state-updates/chapter-005.md`, lalu meminta Python memeriksa hasil:
+1. Berikan premis. AI membangun konsep, karakter, dunia, outline, dan blueprint.
+2. Jalankan `audit` untuk pemeriksaan deterministik.
+3. Jalankan `audit --prompt` untuk membuat paket audit yang dibaca AI. Audit AI memeriksa sebab-akibat, motivasi, character arc, timeline, knowledge state, planting-payoff, dan keputusan.
+4. Setelah outline/blueprint disepakati, jalankan `context NOMOR`. Python menyusun sumber yang relevan tanpa memasukkan State Update dari masa depan.
+5. AI membaca paket konteks, menulis naskah, dan membuat State Update faktual.
+6. Jalankan `verify NOMOR` dan `audit` lagi. Perbarui memori hanya berdasarkan naskah yang benar-benar ditulis dan keputusan yang disetujui.
 
-```bash
-python novel.py --verify 5 --story nama-folder-novel
-python novel.py --status --story nama-folder-novel
-```
+## Perintah
 
-Untuk batch, AI mengulang proses satu bab demi satu bab. Bab selanjutnya baru diproses setelah naskah dan State Update bab sebelumnya tersimpan.
+| Perintah | Fungsi |
+|---|---|
+| `status` | Status outline, blueprint, naskah, dan State Update |
+| `memory` | Memori berbasis sumber; `--before N` membatasi hingga sebelum bab N |
+| `context N` | Membuat paket konteks bab untuk AI |
+| `context N --rewrite` | Mengizinkan paket rewrite; hanya gunakan setelah persetujuan pengguna |
+| `audit` | Pemeriksaan struktur deterministik |
+| `audit --prompt` | Selain cek deterministik, membuat paket audit untuk AI di workbench |
+| `verify N` | Memastikan naskah, blueprint, dan State Update tersedia |
 
-### 2. Python menjalankan AGY
+## Prinsip memori
 
-Jika ingin program yang mengendalikan penulisan melalui Antigravity CLI, jalankan:
+Tidak ada ringkasan AI yang otomatis dianggap kanon. Sumber kebenaran adalah dokumen proyek, decision log, blueprint, naskah, dan State Update. Python menyusun ulang memori dari sumber-sumber itu sesuai kebutuhan bab. AI tidak boleh mengubah canon atau decision log tanpa usulan dan persetujuan.
 
-```bash
-python novel.py
-```
+Status KANON, WAJIB, FLEKSIBEL, dan BELUM DIPUTUSKAN harus dibedakan. Fakta, dugaan, interpretasi, dan kemungkinan tidak boleh dicampur.
 
-Menu interaktif menyediakan status bab, penulisan satu bab, penulisan beberapa bab berurutan, penghapusan dengan konfirmasi, dan pemilihan proyek. Dalam jalur ini Python menyiapkan prompt lalu menjalankan AGY satu proses per bab. Batch berhenti jika AGY gagal, limit terdeteksi, atau file naskah tidak berhasil diverifikasi.
+## Pemeriksaan dan batasnya
 
-### Perintah dan prasyarat
+Python memeriksa hal yang dapat ditentukan dari struktur file: nomor bab, blueprint yang hilang/terlepas, celah nomor, dan sinkronisasi naskah-State Update. AI memeriksa hal yang memerlukan pemahaman cerita: motivasi, kewajaran sebab-akibat, perkembangan karakter, pengetahuan tokoh, serta fungsi planting-payoff.
 
-- `python novel.py --status --story SLUG`: melihat status bab.
-- `python novel.py --context NOMOR --story SLUG`: menyiapkan paket konteks untuk bab baru.
-- `python novel.py --context NOMOR --story SLUG --rewrite`: menyiapkan paket konteks untuk rewrite yang sudah disetujui pengguna.
-- `python novel.py --verify NOMOR --story SLUG`: memeriksa naskah dan State Update.
-- `python novel.py`: membuka menu interaktif yang menjalankan AGY.
+Tidak ada pemeriksaan otomatis yang menjamin cerita bebas kesalahan. Temuan AI harus menyertakan bukti dan lokasi; perubahan struktural harus dicatat di decision log. Pemeriksaan Python yang lolos bukan berarti kualitas cerita sudah lolos.
 
-Python 3 diperlukan untuk semua jalur. Antigravity CLI (`agy`) yang terpasang dan terautentikasi hanya diperlukan untuk jalur menu interaktif. Jika terdapat beberapa proyek, tentukan nama folder dengan `--story`.
+## GitHub Actions
 
-**Batas verifikasi:** perintah `--verify` hanya memeriksa bahwa file naskah ada dan tidak kosong serta memberi peringatan jika State Update belum tersedia. Ia tidak menilai kualitas tulisan, kesesuaian blueprint, atau kelulusan audit. AI tetap bertanggung jawab melakukan pemeriksaan isi.
+Workflow `.github/workflows/python-check.yml` menjalankan compile, unit test, dan audit struktur pada push, pull request, serta pemicu manual. Workflow ini tidak memanggil model AI dan tidak membutuhkan API key.
+
+## Struktur kode
+
+- `novel.py`: satu pintu masuk CLI.
+- `novel_engine/project.py`: penemuan proyek, pembacaan sumber, memori, dan paket konteks.
+- `novel_engine/audit.py`: pemeriksaan deterministik dan paket instruksi audit AI.
+- `novel_engine/cli.py`: antarmuka perintah.
+- `tests/`: uji fungsi inti.
+- `docs/`: metodologi dan kontrak kerja manusia/AI.
+
+File di `workbench/` adalah artefak sementara yang dibuat ulang dari sumber; jangan jadikan sumber kebenaran atau commit ke repository. Naskah, outline, blueprint, State Update, audit, dan decision log tetap berada di folder proyek.
+
+## Proyek contoh
+
+- `stories/gang-yang-hilang-dari-peta/`
+- `stories/arman-mira/`
+
+AI wajib membaca [AI_INSTRUCTIONS.md](AI_INSTRUCTIONS.md) sebelum mengubah proyek.
