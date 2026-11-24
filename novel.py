@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """Pengelola penulisan novel: siapkan konteks lalu jalankan Antigravity CLI."""
 from pathlib import Path
+import argparse
 import json
 import re
 import shutil
@@ -127,7 +128,8 @@ def parse_selection(raw, available):
 
 def collect_context(story, number):
     pieces = []
-    candidates = [ROOT / "AI_INSTRUCTIONS.md", ROOT / "docs" / "05-writing-standard.md"]
+    candidates = [ROOT / "AI_INSTRUCTIONS.md", ROOT / "docs" / "05-writing-standard.md",
+                  story / "README.md"]
     candidates += [story / name for name in CORE_FILES]
     for path in candidates:
         content = read_text(path)
@@ -146,11 +148,17 @@ def collect_context(story, number):
 
     for folder_name in ("continuity", "state-updates"):
         folder = story / folder_name
-        if folder.is_dir():
-            for path in sorted(folder.glob("*.md"))[-8:]:
-                content = read_text(path)
-                if content:
-                    pieces.append((str(path.relative_to(ROOT)), content))
+        if not folder.is_dir():
+            continue
+        files = sorted(folder.glob("*.md"))
+        if folder_name == "state-updates":
+            # Jangan bocorkan state dari bab masa depan ke bab yang sedang ditulis.
+            files = [path for path in files
+                     if chapter_number(path) is None or chapter_number(path) < number]
+        for path in files[-8:]:
+            content = read_text(path)
+            if content:
+                pieces.append((str(path.relative_to(ROOT)), content))
     return pieces
 
 
@@ -376,7 +384,95 @@ def write_many(story, numbers):
     show_status(story)
 
 
-def main():
+
+def resolve_story(slug=None):
+    if slug:
+        story = STORIES_DIR / slug
+        if story.is_dir():
+            return story
+        print(f"Proyek novel tidak ditemukan: {slug}")
+        return None
+    stories = sorted(p for p in STORIES_DIR.iterdir() if p.is_dir()) if STORIES_DIR.is_dir() else []
+    if len(stories) == 1:
+        return stories[0]
+    if not stories:
+        print("Folder stories kosong atau tidak ditemukan.")
+    else:
+        print("Ada beberapa proyek. Tentukan dengan --story NAMA_FOLDER.")
+    return None
+
+
+def prepare_context_file(story, number):
+    available = get_numbers(story)
+    if number not in available:
+        print(f"Bab {number} tidak ditemukan dalam outline, blueprint, atau daftar naskah proyek.")
+        return 2
+    pieces = collect_context(story, number)
+    sections = [
+        f"# Paket konteks Bab {number:03d}",
+        f"Proyek: {story.name}",
+        f"Nomor bab: {number}",
+        f"Target naskah: {manuscript_path(story, number).relative_to(ROOT)}",
+        f"Target State Update: {state_path(story, number).relative_to(ROOT)}",
+        "",
+        "Paket ini disiapkan Python untuk dibaca AI. AI tetap bertanggung jawab menilai konteks, menulis prosa, dan menyimpan hasil.",
+        "Jangan mengubah kanon, outline, blueprint, atau bab lain ketika menulis bab ini.",
+        "State Update dari bab setelah bab target sengaja tidak disertakan.",
+    ]
+    for label, content in pieces:
+        sections.extend(["", f"## Sumber: {label}", "", content])
+    workbench = story / "workbench"
+    workbench.mkdir(parents=True, exist_ok=True)
+    output = workbench / f"context-chapter-{number:03d}.md"
+    output.write_text("\\n".join(sections).rstrip() + "\\n", encoding="utf-8")
+    print(f"Paket konteks dibuat: {output.relative_to(ROOT)}")
+    print("Baca file tersebut sebelum menulis. Setelah menulis, jalankan --verify.")
+    return 0
+
+
+def verify_chapter(story, number):
+    manuscript = manuscript_path(story, number)
+    state = state_path(story, number)
+    if not manuscript.is_file() or not read_text(manuscript):
+        print(f"BELUM VALID: naskah Bab {number} tidak ditemukan atau kosong.")
+        print(f"Target: {manuscript.relative_to(ROOT)}")
+        return 1
+    print(f"OK: naskah ditemukan dan tidak kosong: {manuscript.relative_to(ROOT)}")
+    if state.is_file() and read_text(state):
+        print(f"OK: State Update ditemukan: {state.relative_to(ROOT)}")
+    else:
+        print(f"PERINGATAN: State Update belum ada atau kosong: {state.relative_to(ROOT)}")
+    print("Verifikasi ini hanya memeriksa keberadaan file, bukan kualitas atau kelulusan audit.")
+    return 0
+
+
+def command_line():
+    parser = argparse.ArgumentParser(
+        description="Pengelola proyek novel: ambil konteks, lihat status, dan verifikasi naskah."
+    )
+    parser.add_argument("--story", help="Nama folder proyek di stories/, misalnya gang-yang-hilang-dari-peta")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--status", action="store_true", help="Tampilkan status bab tanpa menu interaktif")
+    group.add_argument("--context", type=int, metavar="BAB", help="Siapkan paket konteks bab untuk dibaca AI")
+    group.add_argument("--verify", type=int, metavar="BAB", help="Verifikasi file naskah dan State Update")
+    args = parser.parse_args()
+
+    if not (args.status or args.context is not None or args.verify is not None):
+        interactive_main()
+        return 0
+
+    story = resolve_story(args.story)
+    if story is None:
+        return 2
+    if args.status:
+        show_status(story)
+        return 0
+    if args.context is not None:
+        return prepare_context_file(story, args.context)
+    return verify_chapter(story, args.verify)
+
+
+def interactive_main():
     story = select_story()
     if story is None:
         return
