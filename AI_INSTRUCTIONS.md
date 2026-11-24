@@ -20,7 +20,7 @@ Gunakan label:
 
 AI tidak boleh mengubah canon, keputusan, hubungan inti, mekanisme konflik, atau akhir secara diam-diam.
 
-## Alur dari premis
+Gunakan dokumen metode di `docs/` saat membangun alur, blueprint, kontinuitas, audit, atau workspace. Saat membuat proyek baru, gunakan template di `templates/` sebagai format awal; jangan menyalin isi cerita dari `examples/` ke novel lain.\n\n## Alur dari premis
 
 Premis adalah input awal yang cukup. AI mengembangkan konsep, karakter, dunia, alur lengkap, jumlah bab sesuai kebutuhan, dan blueprint. Jangan meminta pengguna mengisi formulir panjang jika keputusan kreatif dapat diambil secara wajar. Tandai hanya ketidakpastian yang benar-benar memengaruhi identitas cerita atau logika utama.
 
