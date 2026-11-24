@@ -70,8 +70,11 @@ def interactive_menu(story):
             if raw.isdigit():
                 number = int(raw)
                 rewrite = False
-                if read(manuscript(story, number)):
-                    rewrite = input("Naskah sudah ada. Rewrite? (y/t): ").strip().lower() == "y"
+                has_m = bool(read(manuscript(story, number)))
+                has_s = bool(read(state_update(story, number)))
+                if has_m or has_s:
+                    msg = "Naskah sudah ada" if has_m else "Terdeteksi orphan State Update (tanpa naskah)"
+                    rewrite = input(f"{msg}. Rewrite? (y/t): ").strip().lower() == "y"
                 try:
                     out = story / "workbench" / f"context-chapter-{number:03d}.md"
                     out.parent.mkdir(parents=True, exist_ok=True)

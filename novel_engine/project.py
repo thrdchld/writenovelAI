@@ -127,35 +127,81 @@ def build_memory(story, before_chapter=None):
 
 
 def parse_character_profile(text):
-    """Split character summary into public/general profile and private secrets."""
+    """Split character summary into public/general profile, explicit secrets, and ambiguous/unclassified info."""
     raw_sentences = re.split(r"(?<=[.!?])\s+", text.strip())
     sentences = [s.strip() for s in raw_sentences if s.strip()]
 
     public_parts = []
     secrets_parts = []
+    ambiguous_parts = []
 
-    secret_keywords = (
-        "rahasia", "diam", "sembunyi", "janji", "privat", "motif",
-        "tidak menceritakan", "tidak memberitahu", "takut", "memilih diam",
-        "menyembunyikan", "mengetahui bahwa", "secret", "hidden", "vow", "oath"
+    # Patterns for explicit secrets
+    explicit_secret_pat = re.compile(
+        r"^(?:[-*]\s*)?(?:\*\*)?(?:rahasia|rahasia pribadi|privat|secret|motif tersembunyi):?(?:\*\*)?\s*|^\[(?:rahasia|secret|privat)\]\s*",
+        re.IGNORECASE
+    )
+
+    # Patterns for explicit public info
+    explicit_public_pat = re.compile(
+        r"^(?:[-*]\s*)?(?:\*\*)?(?:profil|peran|profesi|hubungan|relasi|publik|latar belakang):?(?:\*\*)?\s*|^\[(?:publik|public)\]\s*",
+        re.IGNORECASE
+    )
+
+    # Patterns for explicit ambiguous info
+    explicit_ambiguous_pat = re.compile(
+        r"^(?:[-*]\s*)?(?:\*\*)?(?:ambigu|catatan ambigu|perlu pemeriksaan):?(?:\*\*)?\s*|^\[(?:ambigu|perlu pemeriksaan)\]\s*",
+        re.IGNORECASE
     )
 
     for s in sentences:
-        s_lower = s.lower()
-        if any(k in s_lower for k in secret_keywords):
-            secrets_parts.append(s)
-        else:
-            public_parts.append(s)
+        s_strip = s.strip()
+        if not s_strip:
+            continue
 
-    public_info = " ".join(public_parts) if public_parts else text
-    return public_info, secrets_parts
+        # 1. Check explicit secret marker
+        if explicit_secret_pat.search(s_strip):
+            clean = explicit_secret_pat.sub("", s_strip).strip()
+            secrets_parts.append(clean if clean else s_strip)
+            continue
+
+        # 2. Check explicit public marker
+        if explicit_public_pat.search(s_strip):
+            clean = explicit_public_pat.sub("", s_strip).strip()
+            public_parts.append(clean if clean else s_strip)
+            continue
+
+        # 3. Check explicit ambiguous marker
+        if explicit_ambiguous_pat.search(s_strip):
+            clean = explicit_ambiguous_pat.sub("", s_strip).strip()
+            ambiguous_parts.append(clean if clean else s_strip)
+            continue
+
+        s_lower = s_strip.lower()
+
+        # 4. Check for unannotated ambiguous concealment or undisclosed plot pacts
+        # Notice: we do NOT match simple adjectives like "pendiam", simple phobias like "takut ketinggian",
+        # nor personal life oaths like "berjanji pada ... untuk", nor general knowledge "mengetahui bahwa ..."
+        is_ambiguous_concealment = (
+            re.search(r"\b(memilih diam|memutuskan (?:untuk )?diam|tidak menceritakan|tidak memberitahu|menyembunyikan|menutup-nutupi)\b", s_lower)
+            or re.search(r"\bmengetahui\b.*\bpernah berjanji\b", s_lower)
+            or re.search(r"\bmemilih diam karena\b", s_lower)
+        )
+
+        if is_ambiguous_concealment:
+            ambiguous_parts.append(s_strip)
+        else:
+            public_parts.append(s_strip)
+
+    public_info = " ".join(public_parts) if public_parts else (text if not secrets_parts and not ambiguous_parts else "")
+    return public_info, secrets_parts, ambiguous_parts
 
 
 def extract_author_secrets(story):
-    """Dynamically extract canonical author-only secrets from decision-log and/or concept documents."""
-    secrets = []
+    """Dynamically extract canonical author-only secrets and unclassified canon from decision-log and/or concept documents."""
+    explicit_secrets = []
+    unclassified_canon = []
     if not story:
-        return secrets
+        return explicit_secrets, unclassified_canon
 
     dl_path = story / "05-decision-log.md"
     dl_text = read(dl_path)
@@ -163,20 +209,47 @@ def extract_author_secrets(story):
         sections = re.split(r"(?mi)^##\s+", dl_text)
         for sec in sections:
             sec_strip = sec.strip()
-            if not sec_strip or sec_strip.lower().startswith("decision log") or sec_strip.lower().startswith("belum diputuskan"):
+            sec_clean = sec_strip.lstrip("#").strip().lower()
+            if not sec_strip or sec_clean.startswith("decision log") or sec_clean.startswith("belum diputuskan"):
                 continue
             lines = sec_strip.splitlines()
             title = lines[0].strip()
+
+            # Check if this decision is explicitly marked as Author-Only Secret
+            is_secret = False
+            title_lower = title.lower()
+            if any(k in title_lower for k in ("[rahasia penulis]", "[author-only]", "[rahasia]", "(rahasia penulis)", "(author-only)")):
+                is_secret = True
+
+            if re.search(r"(?mi)^[-*]\s*(\*\*)?(?:klasifikasi|sifat|akses|kerahasiaan):?(\*\*)?\s*([^\n]+)", sec_strip):
+                m_class = re.search(r"(?mi)^[-*]\s*(\*\*)?(?:klasifikasi|sifat|akses|kerahasiaan):?(\*\*)?\s*([^\n]+)", sec_strip)
+                val = m_class.group(3).lower()
+                if any(k in val for k in ("rahasia", "author-only", "privat", "hanya penulis")):
+                    is_secret = True
+
+            if re.search(r"(?mi)^[-*]\s*(\*\*)?status:?(\*\*)?\s*([^\n]+)", sec_strip):
+                m_stat = re.search(r"(?mi)^[-*]\s*(\*\*)?status:?(\*\*)?\s*([^\n]+)", sec_strip)
+                val_stat = m_stat.group(3).lower()
+                if any(k in val_stat for k in ("rahasia penulis", "author-only", "[rahasia]")):
+                    is_secret = True
+
             keputusan_match = re.search(r"(?mi)^[-*]\s*(\*\*)?Keputusan:?(\*\*)?\s*([^\n]+(?:\n(?!\s*[-*]\s*(\*\*|\w+:)|\s*##)[^\n]+)*)", sec_strip)
             if keputusan_match:
                 kep = " ".join(keputusan_match.group(3).split())
-                secrets.append(f"{title}: {kep}")
+                entry = f"{title}: {kep}"
             elif len(lines) > 1:
                 body = " ".join(" ".join(lines[1:]).split())
-                if body:
-                    secrets.append(f"{title}: {body}")
+                entry = f"{title}: {body}" if body else title
+            else:
+                entry = title
 
-    if not secrets:
+            if is_secret:
+                explicit_secrets.append(entry)
+            else:
+                unclassified_canon.append(entry)
+
+    # Concept document fallback only for explicitly marked secrets
+    if not explicit_secrets:
         concept_path = story / "01-concept.md"
         c_text = read(concept_path)
         if c_text:
@@ -186,12 +259,13 @@ def extract_author_secrets(story):
                 if not sec_strip:
                     continue
                 header = sec_strip.splitlines()[0].strip()
-                if any(k in header.lower() for k in ("mekanisme misteri", "akhir yang dituju", "kebenaran cerita", "resolusi")):
+                if any(k in header.lower() for k in ("[rahasia penulis]", "[author-only]", "[rahasia]")) or \
+                   re.search(r"(?mi)^[-*]\s*(\*\*)?(?:klasifikasi|sifat|akses):?(\*\*)?\s*([^\n]+(rahasia|author-only))", sec_strip):
                     body = " ".join(sec_strip.splitlines()[1:]).strip()
                     if body:
-                        secrets.append(f"{header}: {' '.join(body.split())}")
+                        explicit_secrets.append(f"{header}: {' '.join(body.split())}")
 
-    return secrets
+    return explicit_secrets, unclassified_canon
 
 
 def normalize_character_name(raw_name, known_names):
@@ -259,12 +333,13 @@ def extract_blueprint_boundaries(blueprint_text, story=None):
                     c_name = re.split(r"[—–-]", header)[0].strip()
                     body = " ".join(l.strip() for l in lines[1:] if l.strip())
                     if c_name and body and not c_name.startswith("#"):
-                        pub_info, sec_parts = parse_character_profile(body)
+                        pub_info, sec_parts, amb_parts = parse_character_profile(body)
                         non_present_profiles[c_name] = {
                             "header": header,
                             "summary": body,
                             "public_info": pub_info,
-                            "secrets_info": sec_parts
+                            "secrets_info": sec_parts,
+                            "ambiguous_info": amb_parts
                         }
 
     # Split blueprint into scenes
@@ -447,12 +522,17 @@ def build_context(story, number, rewrite=False):
     }
     conflicts = detect_source_conflicts(story, number)
 
+    is_orphan = bool(read(state_target) and not read(target))
+    mode_str = "REWRITE" if rewrite else "PENULISAN BARU"
+    if rewrite and is_orphan:
+        mode_str = "REWRITE (Penyelesaian Orphan State Update)"
+
     chunks = [
         f"# PAKET KONTEKS BAB {number:03d}", "",
         f"Proyek: {story.name}",
         f"Target naskah: {display_path(target)}",
         f"Target State Update: {display_path(state_target)}",
-        f"Mode: {'REWRITE' if rewrite else 'PENULISAN BARU'}",
+        f"Mode: {mode_str}",
     ]
 
     # Explicit conflict warnings (if any)
@@ -525,7 +605,7 @@ def build_context(story, number, rewrite=False):
             "",
             "> [!NOTE] PETA JALAN MAKRO (ROADMAP PENGARANG):",
             "> Rangkaian bab dan ringkasan sebab-akibat di bawah ini disediakan agar penulis memahami arah payoff dan konsistensi makro cerita.",
-            "> Peristiwa dan judul bab-bab mendatang BUKAN fakta yang boleh diungkap dalam prosa bab target.",
+            "> Peristiwa dan judul bab-bab MENDATANG bukan fakta yang boleh diungkap dalam bab target, kecuali peristiwa masa lalu atau fakta kanon yang secara sah diizinkan oleh blueprint bab ini.",
             "",
             outline_content,
             ""
@@ -619,25 +699,34 @@ def build_context(story, number, rewrite=False):
                 header = prof["header"]
                 public_info = prof.get("public_info", prof.get("summary", ""))
                 secrets_info = prof.get("secrets_info", [])
+                ambiguous_info = prof.get("ambiguous_info", [])
 
                 chunks.extend([
                     f"#### {header} (Tidak Hadir di Bab Ini)",
-                    f"- **Profil Umum & Hubungan (Referensi Kanon):** {public_info}",
+                    f"- **Profil Umum & Hubungan (Referensi Kanon):** {public_info if public_info else '*(Tidak ada profil umum eksplisit)*'}",
                 ])
                 if secrets_info:
-                    chunks.append("- **Rahasia Pribadi / Motif Tersembunyi (Isolasi Ketat):**")
+                    chunks.append("- **Rahasia Pribadi (Eksplisit dari Sumber):**")
                     for s_item in secrets_info:
                         chunks.append(f"  - {s_item}")
                 else:
-                    chunks.append("- **Rahasia Pribadi / Motif Tersembunyi:** *(Tidak ada rahasia pribadi spesifik yang tercatat)*")
+                    chunks.append("- **Rahasia Pribadi (Eksplisit dari Sumber):** *(Tidak ada rahasia pribadi spesifik yang tercatat)*")
+
+                if ambiguous_info:
+                    chunks.append("- **Informasi Ambigu / Belum Diklasifikasikan (Perlu Pemeriksaan):**")
+                    for a_item in ambiguous_info:
+                        chunks.append(f"  - {a_item}")
 
                 chunks.extend([
                     "- **Batas Isolasi Karakter:**",
-                    f"  > [!CAUTION] ISOLASI RAHASIA {npc.upper()}:",
+                    f"  > [!NOTE] BATAS AKSES INFORMASI {npc.upper()}:",
                     f"  > Hubungan umum dan peran publik {npc} dapat diketahui oleh tokoh hadir sesuai relasi mereka.",
-                    f"  > Namun, rahasia pribadi, memori tersembunyi, atau motif internal {npc} DILARANG dibocorkan ke dalam pikiran, dialog, atau persepsi karakter yang hadir pada bab ini!",
-                    ""
                 ])
+                if secrets_info:
+                    chunks.append(f"  > [!CAUTION] ISOLASI RAHASIA: Rahasia pribadi eksplisit {npc.upper()} di atas DILARANG dibocorkan ke dalam pikiran, dialog, atau persepsi karakter yang hadir pada bab ini!")
+                if ambiguous_info:
+                    chunks.append(f"  > [!NOTE] INFORMASI PERLU PEMERIKSAAN: Untuk catatan ambigu/belum diklasifikasikan di atas, sumber tidak mencatat siapa saja yang mengetahuinya; jangan mengasumsikan seluruh karakter hadir otomatis tahu atau otomatis tidak tahu, melainkan batasi sesuai bukti nyata dalam blueprint bab ini.")
+                chunks.append("")
             else:
                 chunks.extend([
                     f"#### {npc} (Tidak Hadir di Bab Ini)",
@@ -713,16 +802,31 @@ def build_context(story, number, rewrite=False):
         "",
         "### Rahasia yang HANYA DIKETAHUI PENULIS (Author-Only Secrets):",
     ])
-    author_secrets = extract_author_secrets(story)
+    author_secrets, unclassified_canon = extract_author_secrets(story)
     if author_secrets:
         for s in author_secrets:
             chunks.append(f"- {s}")
+        chunks.extend([
+            "> [!WARNING] RAHASIA PENULIS DI ATAS DILARANG DIUNGKAP KEPADA PEMBACA ATAU DIJADIKAN FAKTA YANG DIKETAHUI KARAKTER PADA BAB INI.",
+            ""
+        ])
     else:
-        chunks.append("- *(Tidak ada rahasia khusus yang tercatat dalam dokumen kanon)*")
-    chunks.extend([
-        "> [!WARNING] RAHASIA PENULIS DI ATAS DILARANG DIUNGKAP KEPADA PEMBACA ATAU DIJADIKAN FAKTA YANG DIKETAHUI KARAKTER PADA BAB INI.",
-        ""
-    ])
+        chunks.extend([
+            "- *(Tidak ada rahasia khusus penulis yang ditandai secara eksplisit dalam dokumen kanon)*",
+            ""
+        ])
+
+    if unclassified_canon:
+        chunks.extend([
+            "### Keputusan Kanon Tanpa Klasifikasi Kerahasiaan (Status Terbuka / Belum Ditentukan):",
+        ])
+        for c in unclassified_canon:
+            chunks.append(f"- {c} *(Klasifikasi kerahasiaan belum ditentukan eksplisit)*")
+        chunks.extend([
+            "> [!NOTE] Keputusan kanon di atas merupakan acuan global proyek namun belum memiliki label kerahasiaan spesifik.",
+            "> Jangan membocorkan resolusi akhir atau rahasia masa depan ke bab awal, namun jangan membatasi pengungkapan fakta yang secara sah diizinkan oleh blueprint bab ini.",
+            ""
+        ])
 
     # 6. Konteks Kontinuitas dan Rekam Peristiwa
     chunks.extend([

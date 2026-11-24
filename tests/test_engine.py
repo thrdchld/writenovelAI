@@ -7,8 +7,42 @@ from novel_engine.project import (
     build_context,
     build_memory,
     detect_source_conflicts,
+    manuscript,
+    state_update,
+    read,
 )
 from novel_engine.audit import deterministic_audit
+
+
+def setup_mock_story(root: Path) -> Path:
+    """Setup legacy mock story fixture for Tahap 3B regression testing."""
+    story = root / "mock_story"
+    (story / "blueprint").mkdir(parents=True)
+    (story / "manuscript").mkdir()
+    (story / "state-updates").mkdir()
+    (story / "04-story-outline.md").write_text("| 1 | One |\n| 2 | Two |\n", encoding="utf-8")
+    (story / "02-characters.md").write_text(
+        "# Karakter\n\n"
+        "## Salma — 29\nTeknisi pemetaan teliti.\n\n"
+        "## Dito — 32\nRekan kerja survei berorientasi prosedur.\n\n"
+        "## Yuni — 56\nIbu Salma. Mengetahui Hadi pernah berjanji memperbaiki catatan tiga rumah setelah banjir 2011 dan memilih diam.\n",
+        encoding="utf-8"
+    )
+    (story / "blueprint/chapter-001.md").write_text(
+        "# Blueprint Bab 1 — One\n\n"
+        "## Adegan 1 — Peta final\n"
+        "- **Tokoh hadir:** Salma, Dito, koordinator proyek\n"
+        "- **Yang diketahui tokoh:** Salma tahu hasil surveinya; Dito tahu catatan lapangan; koordinator hanya tahu peta kerja awal.\n"
+        "- **Yang diketahui pembaca:** Pembaca tahu ada perbedaan peta dan kenyataan.\n"
+        "- **Informasi yang ditahan:** Alasan Salma yakin ada rumah di balik tembok ditahan.\n\n"
+        "## Adegan 2 — Nama di kolom pemeriksa\n"
+        "- **Tokoh hadir:** Salma, Dito\n"
+        "- **Yang diketahui tokoh:** Salma tahu Hadi ayahnya; Dito baru tahu nama itu punya hubungan pribadi.\n"
+        "- **Yang diketahui pembaca:** Pembaca mengetahui ayah Salma terlibat, belum tahu perannya.\n"
+        "- **Informasi yang ditahan:** Isi dan motif perubahan peta 2011.\n",
+        encoding="utf-8"
+    )
+    return story
 
 
 def setup_story_a(root: Path) -> Path:
@@ -34,8 +68,12 @@ def setup_story_a(root: Path) -> Path:
         "Akuntan forensik rekan kerja Arya. Ahli rekonsiliasi data digital.\n\n"
         "## Kepala Cabang — 52\n"
         "Pimpinan kantor cabang yang memprioritaskan ketenangan operasional.\n\n"
+        "## Hendra Kusuma — 45\n"
+        "Pustakawan firma yang pendiam dan takut ketinggian. Ia berjanji pada mendiang ayahnya untuk bekerja jujur. Rekan kantor mengetahui bahwa ia selalu datang tepat waktu.\n\n"
         "## Budi Santoso — 60\n"
-        "Mantan kepala gudang. Paman Maya. Mengetahui ada catatan ganda tahun 2018 di brankas lama dan memilih diam karena diancam komplotan penggelapan.\n",
+        "Mantan kepala gudang. Paman Maya.\n"
+        "- **Rahasia:** Menggelapkan dana kas kecil yayasan sebesar 50 juta rupiah.\n"
+        "- **Catatan Ambigu:** Memilih diam saat diinterogasi karena takut diancam komplotan penggelapan.\n",
         encoding="utf-8"
     )
     (story / "04-story-outline.md").write_text(
@@ -46,8 +84,12 @@ def setup_story_a(root: Path) -> Path:
         "# Decision Log Cerita A\n\n"
         "## D-001 — Aliran dana ke rekening luar negeri\n"
         "- **Status:** KANON\n"
+        "- **Klasifikasi:** Rahasia Penulis\n"
         "- **Keputusan:** Dana penggelapan dialirkan ke yayasan fiktif oleh direktur keuangan tanpa sepengetahuan dewan pengawas.\n"
-        "- **Dampak:** Bukti transfer disimpan di brankas arsip lama.\n",
+        "- **Dampak:** Bukti transfer disimpan di brankas arsip lama.\n\n"
+        "## D-002 — Prosedur Audit Cabang\n"
+        "- **Status:** KANON\n"
+        "- **Keputusan:** Verifikasi fisik brankas dilakukan setiap triwulan bersama tim audit eksternal.\n",
         encoding="utf-8"
     )
     (story / "blueprint/chapter-001.md").write_text(
@@ -100,7 +142,9 @@ def setup_story_b(root: Path) -> Path:
         "## Arthur Pendragon — 50\n"
         "Ksatria legendaris pengawal raja. Menguasai pedang pusaka kerajaan.\n\n"
         "## Penyihir Alden — 65\n"
-        "Penasihat sihir istana. Guru Lyra. Mengetahui sumpah darah segel naga dan memilih diam karena takut perang saudara pecah.\n",
+        "Penasihat sihir istana. Guru Lyra.\n"
+        "- **Rahasia:** Mengetahui kutukan sumpah darah segel naga.\n"
+        "- **Catatan Ambigu:** Memilih diam demi mencegah perang saudara.\n",
         encoding="utf-8"
     )
     (story / "04-story-outline.md").write_text(
@@ -111,8 +155,12 @@ def setup_story_b(root: Path) -> Path:
         "# Decision Log Cerita B\n\n"
         "## D-001 — Sumpah darah segel naga\n"
         "- **Status:** KANON\n"
+        "- **Klasifikasi:** Rahasia Penulis\n"
         "- **Keputusan:** Segel naga di bawah kastel retak bukan karena sihir gelap musuh melainkan akibat kutukan sumpah darah raja pertama.\n"
-        "- **Dampak:** Hanya darah keturunan sah yang bisa menstabilkan segel.\n",
+        "- **Dampak:** Hanya darah keturunan sah yang bisa menstabilkan segel.\n\n"
+        "## D-002 — Pertahanan Gerbang Timur\n"
+        "- **Status:** KANON\n"
+        "- **Keputusan:** Pasukan tombak ditempatkan di gerbang timur selama festival.\n",
         encoding="utf-8"
     )
     (story / "blueprint/chapter-001.md").write_text(
@@ -145,6 +193,7 @@ class EngineTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name)
+        self.mock_story = setup_mock_story(self.root)
         self.story_a = setup_story_a(self.root)
         self.story_b = setup_story_b(self.root)
 
@@ -152,7 +201,7 @@ class EngineTests(unittest.TestCase):
         self.tmp.cleanup()
 
     # ==========================================================
-    # Pengujian Bawaan & Struktural Dasar Engine
+    # 1. Pengujian Bawaan & Struktural Dasar Engine
     # ==========================================================
 
     def test_combined_blueprint_split(self):
@@ -188,7 +237,144 @@ class EngineTests(unittest.TestCase):
         self.assertIn("State Update Bab 1 belum tersedia", text)
 
     # ==========================================================
-    # 14 Kebutuhan Perilaku Spesifik Tahap 3C
+    # 2. Restored Regression Tests Tahap 3B (Mock Fixture)
+    # ==========================================================
+
+    def test_r01_salma_knowledge_not_attributed_to_dito(self):
+        """R1. Fakta yang diketahui Salma tidak otomatis dianggap diketahui Dito."""
+        text = build_context(self.mock_story, 1)
+        dito_start = text.find("#### Dito")
+        dito_end = text.find("#### Koordinator proyek")
+        dito_section = text[dito_start:dito_end]
+        self.assertIn("Dito tahu catatan lapangan", dito_section)
+        self.assertIn("Dito baru tahu nama itu punya hubungan pribadi", dito_section)
+        self.assertNotIn("Salma tahu hasil surveinya", dito_section)
+        self.assertNotIn("Salma tahu Hadi ayahnya", dito_section)
+
+    def test_r02_yuni_knowledge_isolated_from_salma(self):
+        """R2. Fakta yang diketahui Yuni tidak otomatis dianggap diketahui Salma."""
+        text = build_context(self.mock_story, 1)
+        salma_start = text.find("#### Salma")
+        salma_end = text.find("#### Dito")
+        salma_section = text[salma_start:salma_end]
+        self.assertNotIn("Hadi pernah berjanji memperbaiki catatan", salma_section)
+
+    def test_r03_reader_withheld_not_conflated_with_character_knowledge(self):
+        """R3. Informasi yang ditahan dari pembaca tidak otomatis menjadi hal yang belum diketahui karakter."""
+        text = build_context(self.mock_story, 1)
+        reader_section = text[text.find("## 5. BATAS INFORMASI PEMBACA BAB 1"):]
+        self.assertIn("Alasan Salma yakin ada rumah di balik tembok ditahan", reader_section)
+
+    def test_r04_salma_suspicions_not_elevated_to_known_facts(self):
+        """R4. Dugaan Salma tidak dinaikkan statusnya menjadi fakta kanon."""
+        (self.mock_story / "blueprint/chapter-001.md").write_text(
+            "# Blueprint Bab 1\n\n"
+            "## Adegan 1 — Peta final\n"
+            "- **Tokoh hadir:** Salma, Dito\n"
+            "- **Yang diketahui tokoh:** Salma curiga dokumen sengaja dihilangkan; Dito tahu catatan lapangan.\n",
+            encoding="utf-8"
+        )
+        text = build_context(self.mock_story, 1)
+        salma_start = text.find("#### Salma")
+        salma_end = text.find("#### Dito")
+        salma_section = text[salma_start:salma_end]
+        self.assertIn("- **Fakta yang diduga:**", salma_section)
+        self.assertIn("Salma curiga dokumen sengaja dihilangkan", salma_section)
+        fakta_diketahui_part = salma_section.split("- **Fakta yang diduga:**")[0]
+        self.assertIn("(Belum ditentukan dalam blueprint)", fakta_diketahui_part)
+
+    def test_r05_suspected_facts_categorized_correctly(self):
+        """R5. Fakta dugaan dikategorikan ke daftar dugaan."""
+        (self.mock_story / "blueprint/chapter-001.md").write_text(
+            "# Blueprint Bab 1\n\n"
+            "## Adegan 1 — Ruang rapat\n"
+            "- **Tokoh hadir:** Salma\n"
+            "- **Yang diketahui tokoh:** Salma menduga ada berkas lain yang disembunyikan.\n",
+            encoding="utf-8"
+        )
+        text = build_context(self.mock_story, 1)
+        salma_sec = text[text.find("#### Salma"):text.find("### B. Karakter yang Tidak Hadir")]
+        self.assertIn("- **Fakta yang diduga:**", salma_sec)
+        self.assertIn("Salma menduga ada berkas lain yang disembunyikan", salma_sec)
+
+    def test_r06_missing_info_marked_as_undetermined(self):
+        """R6. Informasi yang tidak tersedia ditandai sebagai belum ditentukan."""
+        text = build_context(self.mock_story, 1)
+        dito_start = text.find("#### Dito")
+        dito_end = text.find("#### Koordinator proyek")
+        dito_section = text[dito_start:dito_end]
+        self.assertIn("- **Fakta yang diduga:**\n  - *(Belum ditentukan dalam blueprint)*", dito_section)
+        self.assertIn("- **Fakta yang disalahpahami:**\n  - *(Belum ditentukan dalam blueprint)*", dito_section)
+
+    def test_r07_scenes_separated_with_identity(self):
+        """R7. Informasi dari adegan berbeda tidak tercampur dan mencantumkan judul adegan."""
+        text = build_context(self.mock_story, 1)
+        salma_start = text.find("#### Salma")
+        salma_end = text.find("#### Dito")
+        salma_section = text[salma_start:salma_end]
+        self.assertIn("Adegan 1 — Peta final:", salma_section)
+        self.assertIn("Adegan 2 — Nama di kolom pemeriksa:", salma_section)
+
+    def test_r08_present_characters_not_duplicated(self):
+        """R8. Karakter yang hadir tidak terduplikasi."""
+        text = build_context(self.mock_story, 1)
+        sec4_idx = text.find("## 4. BATAS PENGETAHUAN SETIAP KARAKTER BAB 1")
+        sec4_text = text[sec4_idx:text.find("### B. Karakter yang Tidak Hadir")]
+        self.assertEqual(sec4_text.count("#### Salma"), 1)
+        self.assertEqual(sec4_text.count("#### Dito"), 1)
+
+    def test_r09_combined_blueprint_processing_legacy(self):
+        """R9. Blueprint gabungan tetap bisa diproses pada cerita legacy."""
+        (self.mock_story / "blueprint/chapter-002-to-003.md").write_text(
+            "## Bab 2 — Dua\n\n"
+            "### Adegan 1 — Lapangan\n"
+            "- **Batas pengetahuan:** Salma tahu batas gang; Dimas curiga pendataan.\n"
+            "### Adegan 2 — Pulang\n"
+            "- **Batas pengetahuan:** Salma belum tahu riwayat lengkap.\n\n"
+            "## Bab 3 — Tiga\n\n"
+            "### Adegan 1 — Arsip\n"
+            "- **Batas pengetahuan:** Dito memeriksa buku.\n",
+            encoding="utf-8"
+        )
+        text = build_context(self.mock_story, 2)
+        self.assertIn("PAKET KONTEKS BAB 002", text)
+        self.assertIn("## 4. BATAS PENGETAHUAN SETIAP KARAKTER BAB 2", text)
+        self.assertIn("Salma tahu batas gang", text)
+
+    def test_r10_context_generation_ch1_and_ch2_legacy(self):
+        """R10. Pembuatan konteks Bab 1 dan Bab 2 tetap berjalan pada cerita legacy."""
+        (self.mock_story / "blueprint/chapter-002.md").write_text(
+            "# Blueprint Bab 2\n\n"
+            "## Adegan 1 — Briefing\n"
+            "- **Tokoh hadir:** Salma, Dito\n"
+            "- **Yang diketahui tokoh:** Salma dan Dito tahu tugas survei.\n",
+            encoding="utf-8"
+        )
+        (self.mock_story / "manuscript/chapter-001.md").write_text("Prosa bab 1 selesai.", encoding="utf-8")
+        (self.mock_story / "state-updates/chapter-001.md").write_text("State bab 1 terekam.", encoding="utf-8")
+        text1 = build_context(self.mock_story, 1, rewrite=True)
+        text2 = build_context(self.mock_story, 2)
+        self.assertIn("PAKET KONTEKS BAB 001", text1)
+        self.assertIn("PAKET KONTEKS BAB 002", text2)
+        self.assertIn("Prosa bab 1 selesai.", text2)
+        self.assertIn("State bab 1 terekam.", text2)
+
+    def test_r11_future_state_updates_excluded_legacy(self):
+        """R11. State Update masa depan tetap tidak masuk ke konteks cerita legacy."""
+        (self.mock_story / "state-updates/chapter-002.md").write_text("Rahasia bab dua yang belum terjadi", encoding="utf-8")
+        text = build_context(self.mock_story, 1)
+        self.assertNotIn("Rahasia bab dua yang belum terjadi", text)
+
+    def test_r12_file_overwrite_protection_legacy(self):
+        """R12. Perlindungan file yang sudah ada tetap berfungsi pada cerita legacy."""
+        (self.mock_story / "manuscript/chapter-001.md").write_text("Naskah ada", encoding="utf-8")
+        with self.assertRaises(FileExistsError):
+            build_context(self.mock_story, 1, rewrite=False)
+        text_rewrite = build_context(self.mock_story, 1, rewrite=True)
+        self.assertIn("Mode: REWRITE", text_rewrite)
+
+    # ==========================================================
+    # 3. Pengujian Lintas Cerita Tahap 3C (14 Skenario)
     # ==========================================================
 
     def test_01_no_cross_story_hardcoded_content(self):
@@ -197,8 +383,6 @@ class EngineTests(unittest.TestCase):
         text_b = build_context(self.story_b, 1)
 
         import re
-
-        # Story A must NOT contain any names or facts from Gang yang Hilang or Story B
         forbidden_in_a = ["Salma", "Dito", "Yuni", "Hadi", "Kenari", "drainase", "2011", "Lyra", "Arthur", "Alden"]
         for forbidden in forbidden_in_a:
             self.assertIsNone(
@@ -206,7 +390,6 @@ class EngineTests(unittest.TestCase):
                 f"Story A context leaked whole word '{forbidden}'"
             )
 
-        # Story B must NOT contain any names or facts from Gang yang Hilang or Story A
         forbidden_in_b = ["Salma", "Dito", "Yuni", "Hadi", "Kenari", "drainase", "2011", "Arya", "Maya", "Budi"]
         for forbidden in forbidden_in_b:
             self.assertIsNone(
@@ -227,7 +410,6 @@ class EngineTests(unittest.TestCase):
         maya_sec = text[maya_start:kepala_start]
         kepala_sec = text[kepala_start:non_present_start]
 
-        # Arya knows "selisih laporan kas", Maya knows "kode sandi berkas", Kepala Cabang knows "jadwal audit"
         self.assertIn("Arya tahu selisih laporan kas", arya_sec)
         self.assertNotIn("Maya tahu kode sandi berkas", arya_sec)
         self.assertNotIn("kepala cabang hanya tahu jadwal audit", arya_sec)
@@ -243,12 +425,10 @@ class EngineTests(unittest.TestCase):
         text_a = build_context(self.story_a, 1)
         text_b = build_context(self.story_b, 1)
 
-        # In Story A, Budi is absent. His public relation "Paman Maya" / "Mantan kepala gudang" is reference, not isolated secret
         self.assertIn("#### Budi Santoso — 60 (Tidak Hadir di Bab Ini)", text_a)
         self.assertIn("Profil Umum & Hubungan (Referensi Kanon):", text_a)
         self.assertIn("Mantan kepala gudang. Paman Maya.", text_a)
 
-        # In Story B, Alden is absent. His relation "Guru Lyra" / "Penasihat sihir istana" is public reference
         self.assertIn("#### Penyihir Alden — 65 (Tidak Hadir di Bab Ini)", text_b)
         self.assertIn("Profil Umum & Hubungan (Referensi Kanon):", text_b)
         self.assertIn("Penasihat sihir istana. Guru Lyra.", text_b)
@@ -258,46 +438,36 @@ class EngineTests(unittest.TestCase):
         text_a = build_context(self.story_a, 1)
         text_b = build_context(self.story_b, 1)
 
-        # Story A: Budi's secret
-        self.assertIn("Rahasia Pribadi / Motif Tersembunyi (Isolasi Ketat):", text_a)
-        self.assertIn("Mengetahui ada catatan ganda tahun 2018 di brankas lama dan memilih diam", text_a)
-        self.assertIn("ISOLASI RAHASIA BUDI SANTOSO", text_a)
+        self.assertIn("Rahasia Pribadi (Eksplisit dari Sumber):", text_a)
+        self.assertIn("Menggelapkan dana kas kecil yayasan sebesar 50 juta rupiah", text_a)
+        self.assertIn("ISOLASI RAHASIA", text_a)
 
-        # Ensure Budi's secret is NOT in present characters' knowledge
         arya_sec = text_a[text_a.find("#### Arya Pratama"):text_a.find("### B. Karakter yang Tidak Hadir")]
-        self.assertNotIn("catatan ganda tahun 2018", arya_sec)
+        self.assertNotIn("Menggelapkan dana kas kecil", arya_sec)
 
-        # Story B: Alden's secret
-        self.assertIn("Rahasia Pribadi / Motif Tersembunyi (Isolasi Ketat):", text_b)
-        self.assertIn("Mengetahui sumpah darah segel naga dan memilih diam", text_b)
-        self.assertIn("ISOLASI RAHASIA PENYIHIR ALDEN", text_b)
+        self.assertIn("Rahasia Pribadi (Eksplisit dari Sumber):", text_b)
+        self.assertIn("Mengetahui kutukan sumpah darah segel naga", text_b)
 
     def test_05_reader_withheld_not_conflated_with_character_knowledge(self):
         """5. Informasi yang ditahan dari pembaca tidak otomatis membuat tokoh POV tidak tahu."""
         text = build_context(self.story_a, 1)
         reader_sec = text[text.find("## 5. BATAS INFORMASI PEMBACA BAB 1"):]
 
-        # Withheld info is listed in Reader Withheld
         self.assertIn("Alasan Arya mencurigai keterlibatan direktur ditahan dari pembaca", reader_sec)
 
-        # But Arya's section does NOT list it as an unknown fact
         arya_sec = text[text.find("#### Arya Pratama"):text.find("#### Maya Indah")]
         self.assertNotIn("Alasan Arya mencurigai keterlibatan direktur ditahan", arya_sec)
 
     def test_06_author_secrets_dynamically_available(self):
-        """6. Rahasia penulis tetap tersedia di Bagian 2 dan Bagian 5 secara dinamis."""
+        """6. Rahasia penulis eksplisit tetap tersedia secara dinamis."""
         text_a = build_context(self.story_a, 1)
         text_b = build_context(self.story_b, 1)
 
-        # Story A: extracted from 05-decision-log.md
         self.assertIn("D-001 — Aliran dana ke rekening luar negeri", text_a)
-        self.assertIn("Dana penggelapan dialirkan ke yayasan fiktif", text_a)
         sec5_a = text_a[text_a.find("### Rahasia yang HANYA DIKETAHUI PENULIS (Author-Only Secrets):"):]
         self.assertIn("Aliran dana ke rekening luar negeri", sec5_a)
 
-        # Story B: extracted dynamically
         self.assertIn("D-001 — Sumpah darah segel naga", text_b)
-        self.assertIn("Segel naga di bawah kastel retak bukan karena sihir gelap", text_b)
         sec5_b = text_b[text_b.find("### Rahasia yang HANYA DIKETAHUI PENULIS (Author-Only Secrets):"):]
         self.assertIn("Sumpah darah segel naga", sec5_b)
 
@@ -306,7 +476,6 @@ class EngineTests(unittest.TestCase):
         text = build_context(self.story_a, 1)
         kepala_sec = text[text.find("#### Kepala Cabang"):text.find("### B. Karakter yang Tidak Hadir")]
 
-        # Kepala Cabang has no suspected, misunderstood, or unknown facts in blueprint
         self.assertIn("- **Fakta yang diduga:**\n  - *(Belum ditentukan dalam blueprint)*", kepala_sec)
         self.assertIn("- **Fakta yang disalahpahami:**\n  - *(Belum ditentukan dalam blueprint)*", kepala_sec)
         self.assertIn("- **Fakta yang belum diketahui:**\n  - *(Belum ditentukan dalam blueprint)*", kepala_sec)
@@ -316,7 +485,6 @@ class EngineTests(unittest.TestCase):
         text = build_context(self.story_a, 1)
         arya_sec = text[text.find("#### Arya Pratama"):text.find("#### Maya Indah")]
 
-        # Scene 1 and Scene 2 tags must be retained with their respective clauses
         self.assertIn("Adegan 1 — Kantor Firma:", arya_sec)
         self.assertIn("Arya tahu selisih laporan kas", arya_sec)
         self.assertIn("Adegan 2 — Ruang Arsip:", arya_sec)
@@ -364,7 +532,6 @@ class EngineTests(unittest.TestCase):
 
     def test_13_context_generation_ch1_and_ch2_both_stories(self):
         """13. Pembuatan konteks berhasil untuk Bab 1 dan Bab 2 pada kedua fixture cerita."""
-        # Story A Chapter 1 & 2
         ctx_a1 = build_context(self.story_a, 1)
         self.assertIn("PAKET KONTEKS BAB 001", ctx_a1)
 
@@ -374,7 +541,6 @@ class EngineTests(unittest.TestCase):
         self.assertIn("PAKET KONTEKS BAB 002", ctx_a2)
         self.assertIn("Naskah Bab 1 selesai.", ctx_a2)
 
-        # Story B Chapter 1 & 2
         ctx_b1 = build_context(self.story_b, 1)
         self.assertIn("PAKET KONTEKS BAB 001", ctx_b1)
 
@@ -395,19 +561,114 @@ class EngineTests(unittest.TestCase):
         pangeran_sec = text_b[pangeran_start:arthur_pendragon_start]
         arthur_pendragon_sec = text_b[arthur_pendragon_start:non_present_start]
 
-        # "Pangeran Arthur mencurigai racun" must be in Pangeran Arthur ONLY
         self.assertIn("Pangeran Arthur mencurigai racun pada piala perjamuan", pangeran_sec)
         self.assertNotIn("Arthur Pendragon memegang pedang pusaka", pangeran_sec)
 
-        # "Arthur Pendragon memegang pedang pusaka" must be in Arthur Pendragon ONLY
         self.assertIn("Arthur Pendragon memegang pedang pusaka", arthur_pendragon_sec)
         self.assertNotIn("Pangeran Arthur mencurigai racun", arthur_pendragon_sec)
 
-        # Multi-word name without characters doc entry ("Kepala Cabang" in Story A)
         text_a = build_context(self.story_a, 1)
         self.assertIn("#### Kepala Cabang", text_a)
         kepala_sec = text_a[text_a.find("#### Kepala Cabang"):text_a.find("### B. Karakter yang Tidak Hadir")]
         self.assertIn("kepala cabang hanya tahu jadwal audit", kepala_sec)
+
+    # ==========================================================
+    # 4. Pengujian Baru Tahap 3D
+    # ==========================================================
+
+    def test_3d_01_canon_decisions_not_automatically_author_secrets(self):
+        """3D-1: Keputusan kanon biasa tidak otomatis menjadi rahasia penulis."""
+        text_a = build_context(self.story_a, 1)
+        sec5 = text_a[text_a.find("## 5. BATAS INFORMASI PEMBACA BAB 1"):]
+
+        author_secrets_part = sec5.split("### Keputusan Kanon Tanpa Klasifikasi Kerahasiaan")[0]
+        # D-002 is regular canon (no secret classification); must NOT be in Author-Only Secrets
+        self.assertNotIn("D-002 — Prosedur Audit Cabang", author_secrets_part)
+
+        # D-002 must appear in Keputusan Kanon Tanpa Klasifikasi Kerahasiaan
+        unclassified_part = sec5.split("### Keputusan Kanon Tanpa Klasifikasi Kerahasiaan")[1]
+        self.assertIn("D-002 — Prosedur Audit Cabang", unclassified_part)
+        self.assertIn("Verifikasi fisik brankas dilakukan setiap triwulan", unclassified_part)
+
+    def test_3d_02_explicit_author_secrets_correctly_classified(self):
+        """3D-2: Rahasia penulis eksplisit (bertanda Klasifikasi: Rahasia Penulis) masuk ke Author-Only Secrets."""
+        text_a = build_context(self.story_a, 1)
+        sec5 = text_a[text_a.find("### Rahasia yang HANYA DIKETAHUI PENULIS (Author-Only Secrets):"):]
+        author_secrets_part = sec5.split("### Keputusan Kanon Tanpa Klasifikasi Kerahasiaan")[0]
+
+        # D-001 has Klasifikasi: Rahasia Penulis
+        self.assertIn("D-001 — Aliran dana ke rekening luar negeri", author_secrets_part)
+        self.assertIn("Dana penggelapan dialirkan ke yayasan fiktif", author_secrets_part)
+
+    def test_3d_03_profile_non_secret_keywords_not_misclassified(self):
+        """3D-3: Kalimat profil yang memuat 'pendiam', 'takut', 'janji', 'mengetahui bahwa' tidak salah diklasifikasikan sebagai rahasia."""
+        text_a = build_context(self.story_a, 1)
+        self.assertIn("#### Hendra Kusuma — 45 (Tidak Hadir di Bab Ini)", text_a)
+
+        hendra_start = text_a.find("#### Hendra Kusuma — 45")
+        budi_start = text_a.find("#### Budi Santoso — 60")
+        hendra_sec = text_a[hendra_start:budi_start]
+
+        # All sentences must be under Profil Umum & Hubungan
+        self.assertIn("Profil Umum & Hubungan (Referensi Kanon):", hendra_sec)
+        self.assertIn("Pustakawan firma yang pendiam dan takut ketinggian.", hendra_sec)
+        self.assertIn("Ia berjanji pada mendiang ayahnya untuk bekerja jujur.", hendra_sec)
+        self.assertIn("Rekan kantor mengetahui bahwa ia selalu datang tepat waktu.", hendra_sec)
+
+        # There must be NO secrets recorded for Hendra
+        self.assertIn("- **Rahasia Pribadi (Eksplisit dari Sumber):** *(Tidak ada rahasia pribadi spesifik yang tercatat)*", hendra_sec)
+
+    def test_3d_04_explicit_secret_without_keywords_classified_as_secret(self):
+        """3D-4: Rahasia bertanda eksplisit tanpa kata kunci 'diam'/'takut'/'janji' berhasil dikenali sebagai rahasia."""
+        text_a = build_context(self.story_a, 1)
+        budi_sec = text_a[text_a.find("#### Budi Santoso — 60"):text_a.find("### C. Catatan Pengetahuan Ambigu")]
+
+        # Budi's secret: "Menggelapkan dana kas kecil yayasan sebesar 50 juta rupiah." (no secret keywords)
+        self.assertIn("- **Rahasia Pribadi (Eksplisit dari Sumber):**", budi_sec)
+        self.assertIn("Menggelapkan dana kas kecil yayasan sebesar 50 juta rupiah", budi_sec)
+
+    def test_3d_05_ambiguous_profile_sentence_labeled_for_review(self):
+        """3D-5: Kalimat ambigu (tindakan memilih diam/menahan info) diberi label perlu pemeriksaan."""
+        text_a = build_context(self.story_a, 1)
+        budi_sec = text_a[text_a.find("#### Budi Santoso — 60"):text_a.find("### C. Catatan Pengetahuan Ambigu")]
+
+        self.assertIn("- **Informasi Ambigu / Belum Diklasifikasikan (Perlu Pemeriksaan):**", budi_sec)
+        self.assertIn("Memilih diam saat diinterogasi karena takut diancam komplotan penggelapan.", budi_sec)
+        self.assertIn("INFORMASI PERLU PEMERIKSAAN", budi_sec)
+
+    def test_3d_06_orphan_state_update_blocks_normal_write_and_preserves_other_sources(self):
+        """3D-6: Kondisi orphan State Update memblokir penulisan normal tanpa rewrite=True, dan rewrite tidak merusak sumber lain."""
+        # Create orphan State Update
+        (self.story_a / "state-updates/chapter-001.md").write_text("State orphan Bab 1.", encoding="utf-8")
+
+        # Must raise FileExistsError if rewrite=False (cannot proceed quietly as normal write)
+        with self.assertRaises(FileExistsError):
+            build_context(self.story_a, 1, rewrite=False)
+
+        # Read original sources before rewrite
+        premise_before = read(self.story_a / "00-premise.md")
+        blueprint_before = read(self.story_a / "blueprint/chapter-001.md")
+        outline_before = read(self.story_a / "04-story-outline.md")
+
+        # Generate context with explicit rewrite=True
+        ctx_rewrite = build_context(self.story_a, 1, rewrite=True)
+        self.assertIn("Mode: REWRITE (Penyelesaian Orphan State Update)", ctx_rewrite)
+        self.assertIn("Terdeteksi orphan state: State Update Bab 1", ctx_rewrite)
+
+        # Sources must NOT be damaged or modified
+        self.assertEqual(read(self.story_a / "00-premise.md"), premise_before)
+        self.assertEqual(read(self.story_a / "blueprint/chapter-001.md"), blueprint_before)
+        self.assertEqual(read(self.story_a / "04-story-outline.md"), outline_before)
+
+    def test_3d_07_state_update_overwrite_protection_without_manuscript(self):
+        """3D-7: State Update yang ada dilindungi dari penimpaan meskipun manuskrip belum ada."""
+        (self.story_a / "state-updates/chapter-001.md").write_text("Catatan fakta ada.", encoding="utf-8")
+        self.assertFalse((self.story_a / "manuscript/chapter-001.md").exists())
+
+        # Calling without rewrite must raise FileExistsError
+        with self.assertRaises(FileExistsError) as cm:
+            build_context(self.story_a, 1, rewrite=False)
+        self.assertIn("File target sudah ada", str(cm.exception))
 
 
 if __name__ == "__main__":
