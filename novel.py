@@ -128,7 +128,10 @@ def parse_selection(raw, available):
 
 def collect_context(story, number):
     pieces = []
-    candidates = [ROOT / "AI_INSTRUCTIONS.md", ROOT / "docs" / "05-writing-standard.md",
+    candidates = [ROOT / "AI_INSTRUCTIONS.md",
+                  ROOT / "docs" / "03-continuity.md",
+                  ROOT / "docs" / "05-writing-standard.md",
+                  ROOT / "docs" / "06-ai-operating-contract.md",
                   story / "README.md"]
     candidates += [story / name for name in CORE_FILES]
     for path in candidates:
@@ -402,11 +405,15 @@ def resolve_story(slug=None):
     return None
 
 
-def prepare_context_file(story, number):
+def prepare_context_file(story, number, rewrite=False):
     available = get_numbers(story)
     if number not in available:
         print(f"Bab {number} tidak ditemukan dalam outline, blueprint, atau daftar naskah proyek.")
         return 2
+    if is_written(story, number) and not rewrite:
+        print(f"Naskah Bab {number} sudah ada: {manuscript_path(story, number).relative_to(ROOT)}")
+        print("Tidak ada file yang ditimpa. Jika pengguna memang meminta rewrite, jalankan ulang dengan --rewrite.")
+        return 3
     pieces = collect_context(story, number)
     sections = [
         f"# Paket konteks Bab {number:03d}",
@@ -418,6 +425,8 @@ def prepare_context_file(story, number):
         "Paket ini disiapkan Python untuk dibaca AI. AI tetap bertanggung jawab menilai konteks, menulis prosa, dan menyimpan hasil.",
         "Jangan mengubah kanon, outline, blueprint, atau bab lain ketika menulis bab ini.",
         "State Update dari bab setelah bab target sengaja tidak disertakan.",
+        ("PENGERJAAN REWRITE: naskah bab sudah ada. Revisi hanya jika memang diminta pengguna; pertahankan bagian yang benar dan jangan mengubah fakta kanon."
+         if rewrite else "PENULISAN BARU: target naskah belum ada. Jangan menimpa naskah bab lain."),
     ]
     for label, content in pieces:
         sections.extend(["", f"## Sumber: {label}", "", content])
@@ -455,6 +464,7 @@ def command_line():
     group.add_argument("--status", action="store_true", help="Tampilkan status bab tanpa menu interaktif")
     group.add_argument("--context", type=int, metavar="BAB", help="Siapkan paket konteks bab untuk dibaca AI")
     group.add_argument("--verify", type=int, metavar="BAB", help="Verifikasi file naskah dan State Update")
+    parser.add_argument("--rewrite", action="store_true", help="Izinkan penyiapan konteks untuk rewrite bab yang sudah ada")
     args = parser.parse_args()
 
     if not (args.status or args.context is not None or args.verify is not None):
@@ -468,7 +478,9 @@ def command_line():
         show_status(story)
         return 0
     if args.context is not None:
-        return prepare_context_file(story, args.context)
+        return prepare_context_file(story, args.context, args.rewrite)
+    if args.rewrite:
+        parser.error("--rewrite hanya dapat digunakan bersama --context")
     return verify_chapter(story, args.verify)
 
 
