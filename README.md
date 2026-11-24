@@ -40,6 +40,32 @@ Urutan argumen: `python novel.py --story SLUG PERINTAH`. Jika hanya ada satu pro
 | `agy 1-5,8` | Menjalankan AGY secara berurutan; bab yang sudah ada dilewati |
 | `agy 5 --rewrite` | Menjalankan AGY untuk rewrite yang diminta secara eksplisit |
 
+## Referensi kerja
+
+**Metodologi**
+- [Alur kerja novel](docs/01-workflow.md)
+- [Scene Blueprint](docs/02-scene-blueprint.md)
+- [Kontinuitas](docs/03-continuity.md)
+- [Audit dan perbaikan](docs/04-audit-and-repair.md)
+- [Standar prosa](docs/05-writing-standard.md)
+- [Kontrak operasional AI](docs/06-ai-operating-contract.md)
+- [GitHub sebagai workspace](docs/07-github-writing-workspace.md)
+- [Arsitektur Novel Engine v2](docs/08-engine-architecture.md)
+
+**Template**
+- [Template proyek novel](templates/novel-project-readme-template.md)
+- [Template blueprint bab](templates/scene-blueprint-template.md)
+- [Template State Update](templates/state-update-template.md)
+- [Template audit](templates/audit-report-template.md)
+- [Template decision log](templates/decision-log-template.md)
+- [Template paket konteks](templates/chapter-context-template.md)
+
+**Contoh metode**
+- [Salah Kirim](examples/salah-kirim.md)
+- [Arman dan Mira](examples/arman-mira.md)
+
+Contoh adalah referensi cara menerapkan metode, bukan fakta atau canon untuk novel lain.
+
 ## Prinsip memori
 
 Tidak ada ringkasan AI yang otomatis dianggap kanon. Sumber kebenaran adalah dokumen proyek, decision log, blueprint, naskah, dan State Update. Python menyusun ulang memori dari sumber-sumber itu sesuai kebutuhan bab. AI tidak boleh mengubah canon atau decision log tanpa usulan dan persetujuan.
