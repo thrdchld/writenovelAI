@@ -113,9 +113,11 @@ def handle(repo, issue_number, command):
         for number in numbers:
             target = manuscript(story, number)
             state = state_update(story, number)
-            if target.exists() or state.exists():
+            if target.exists() and state.exists():
                 skipped.append(number)
                 continue
+            if target.exists() or state.exists():
+                raise RuntimeError(f"Bab {number} memiliki file parsial; tidak ditimpa.")
             try:
                 context = build_context(story, number, rewrite=False)
                 answer = call_model(
