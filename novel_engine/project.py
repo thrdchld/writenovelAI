@@ -117,6 +117,8 @@ def build_context(story, number, rewrite=False):
         raise FileExistsError(f"Naskah sudah ada: {display_path(target)}. Rewrite perlu persetujuan eksplisit.")
     parts = [
         ("Instruksi AI", ROOT / "AI_INSTRUCTIONS.md"),
+        ("Panduan blueprint adegan", ROOT / "docs/02-scene-blueprint.md"),
+        ("Panduan kontinuitas", ROOT / "docs/03-continuity.md"),
         ("Standar prosa", ROOT / "docs/05-writing-standard.md"),
         ("Kontrak kerja", ROOT / "docs/06-ai-operating-contract.md"),
         ("README proyek", story / "README.md"),
