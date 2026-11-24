@@ -118,7 +118,7 @@ Gunakan jalur ini ketika pengguna meminta AI menulis bab dan lingkungan AI memil
 
 1. Pastikan terminal berada di direktori utama repository.
 2. Tentukan nama folder proyek di `stories/`. Jika hanya ada satu proyek, argumen `--story` boleh dihilangkan. Jika ada beberapa proyek, wajib tentukan `--story <slug-folder>`.
-3. Jalankan `python novel.py --context NOMOR_BAB --story SLUG`.
+3. Periksa status jika perlu dengan `python novel.py --status --story SLUG`. Jalankan `python novel.py --context NOMOR_BAB --story SLUG` untuk bab baru. Jika file bab sudah ada, jangan menimpanya; minta persetujuan rewrite. Hanya jika pengguna secara eksplisit meminta rewrite, jalankan `python novel.py --context NOMOR_BAB --story SLUG --rewrite`.
 4. Baca seluruh file paket konteks yang dilaporkan Python di `stories/<slug>/workbench/context-chapter-NNN.md`. Jangan menulis hanya berdasarkan ringkasan terminal.
 5. Tulis naskah lengkap dengan kemampuan AI sendiri ke target `stories/<slug>/manuscript/chapter-NNN.md` yang tercantum dalam paket konteks.
 6. Buat atau perbarui State Update faktual ke target `stories/<slug>/state-updates/chapter-NNN.md`. Catat hanya kejadian yang benar-benar ada di naskah.
@@ -128,7 +128,8 @@ Gunakan jalur ini ketika pengguna meminta AI menulis bab dan lingkungan AI memil
 
 Perintah pendukung:
 - `python novel.py --status --story SLUG`: melihat status bab tanpa menu interaktif.
-- `python novel.py --context NOMOR_BAB --story SLUG`: membuat paket konteks untuk AI.
+- `python novel.py --context NOMOR_BAB --story SLUG`: membuat paket konteks untuk bab baru dan menolak jika naskah target sudah ada.
+- `python novel.py --context NOMOR_BAB --story SLUG --rewrite`: membuat paket konteks rewrite setelah ada instruksi eksplisit pengguna.
 - `python novel.py --verify NOMOR_BAB --story SLUG`: memeriksa keberadaan naskah dan State Update.
 
 Jalur ini tidak menjalankan AGY dari dalam Python. AI yang sedang aktif adalah penulisnya.
