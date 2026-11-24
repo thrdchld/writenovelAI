@@ -123,7 +123,7 @@ def handle(repo, issue_number, command):
                     "Jangan ubah canon. Tulis prosa natural, paragraf normal. "
                     "Kembalikan HANYA JSON valid dengan dua string: manuscript dan state_update. "
                     "manuscript adalah naskah bab lengkap. state_update hanya fakta yang benar-benar terjadi di naskah.",
-                    context + "\\n\\nKembalikan JSON dengan schema: {\\"manuscript\\": \\"...\\", \\"state_update\\": \\"...\\"}"
+                    context + "\n\nKembalikan JSON dengan schema: {\"manuscript\": \"...\", \"state_update\": \"...\"}"
                 )
                 result = extract_json(answer)
                 prose = result.get("manuscript", "").strip()
@@ -132,8 +132,8 @@ def handle(repo, issue_number, command):
                     raise ValueError("Respons AI tidak lengkap.")
                 target.parent.mkdir(parents=True, exist_ok=True)
                 state.parent.mkdir(parents=True, exist_ok=True)
-                target.write_text(prose + "\\n", encoding="utf-8")
-                state.write_text(update + "\\n", encoding="utf-8")
+                target.write_text(prose + "\n", encoding="utf-8")
+                state.write_text(update + "\n", encoding="utf-8")
                 if verify(story, number) != 0:
                     target.unlink(missing_ok=True)
                     state.unlink(missing_ok=True)
