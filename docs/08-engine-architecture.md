@@ -10,9 +10,9 @@ Menjaga satu sumber kebenaran cerita dan mengurangi pengulangan konteks. Mesin t
 2. `novel_engine/project.py`: resolver proyek, parser nomor bab/blueprint gabungan, memori bersumber, dan paket konteks.
 3. `novel_engine/audit.py`: pemeriksaan struktur dan paket audit naratif untuk AI.
 4. `novel_engine/agy.py`: adapter opsional untuk penulisan AGY berurutan.
-5. `novel_engine/cli.py`: antarmuka perintah lokal.
+5. `novel_engine/cli.py`: antarmuka perintah lokal dan menu interaktif.
 6. `novel_engine/github_bot.py`: bot issue untuk status, audit outline, dan penulisan bab/batch melalui API model yang kompatibel dengan OpenAI Chat Completions.
-7. `tests/test_engine.py`: uji parsing blueprint gabungan, temuan blueprint hilang, batas memori temporal, dan nomor bab.
+7. `tests/test_engine.py`: uji parsing blueprint gabungan, temuan blueprint hilang/duplikat, perlindungan State Update, batas memori temporal, dan nomor bab.
 8. `.github/workflows/python-check.yml`: compile, unit test, dan audit struktur pada push/PR.
 9. `.github/workflows/novel-bot.yml`: menerima perintah issue dari pemilik repository, menjalankan bot, dan menyimpan hasil melalui commit.
 
