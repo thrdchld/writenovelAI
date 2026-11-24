@@ -37,6 +37,66 @@ def verify(story, number):
     return 0
 
 
+
+def interactive_menu(story):
+    while True:
+        print("\n" + "=" * 56)
+        print(f" NOVEL ENGINE: {story.name}")
+        print("=" * 56)
+        print("1. Lihat status")
+        print("2. Lihat memori cerita")
+        print("3. Audit struktur outline")
+        print("4. Siapkan konteks bab untuk AI")
+        print("5. Verifikasi bab")
+        print("6. Jalankan AGY (satu/batch berurutan)")
+        print("0. Keluar")
+        choice = input("Pilih: ").strip()
+        if choice == "1":
+            status(story)
+        elif choice == "2":
+            print(build_memory(story))
+        elif choice == "3":
+            findings = deterministic_audit(story)
+            for severity, code, detail in findings:
+                print(f"[{severity}] {code}: {detail}")
+            if not findings:
+                print("Tidak ada masalah struktural sederhana yang terdeteksi.")
+            if input("Buat paket audit untuk AI? (y/t): ").strip().lower() == "y":
+                out = story / "workbench" / "outline-audit-prompt.md"
+                out.parent.mkdir(parents=True, exist_ok=True)
+                out.write_text(outline_audit_prompt(story), encoding="utf-8")
+                print(f"Paket audit: {out.relative_to(ROOT)}")
+        elif choice == "4":
+            raw = input("Nomor bab: ").strip()
+            if raw.isdigit():
+                number = int(raw)
+                rewrite = False
+                if read(manuscript(story, number)):
+                    rewrite = input("Naskah sudah ada. Rewrite? (y/t): ").strip().lower() == "y"
+                try:
+                    out = story / "workbench" / f"context-chapter-{number:03d}.md"
+                    out.parent.mkdir(parents=True, exist_ok=True)
+                    out.write_text(build_context(story, number, rewrite), encoding="utf-8")
+                    print(f"Paket konteks: {out.relative_to(ROOT)}")
+                except (ValueError, FileExistsError) as exc:
+                    print(exc)
+            else:
+                print("Nomor bab tidak valid.")
+        elif choice == "5":
+            raw = input("Nomor bab: ").strip()
+            if raw.isdigit():
+                verify(story, int(raw))
+            else:
+                print("Nomor bab tidak valid.")
+        elif choice == "6":
+            raw = input("Bab (contoh 4 atau 1-5,8): ").strip()
+            rewrite = input("Izinkan rewrite bab yang sudah ada? (y/t): ").strip().lower() == "y"
+            run_batch(story, raw, chapter_numbers(story), rewrite)
+        elif choice == "0":
+            return 0
+        else:
+            print("Pilihan tidak dikenal.")
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Novel Engine — memory, context, outline audit, and verification.")
     parser.add_argument("--story", help="Slug folder proyek di stories/")
@@ -57,7 +117,9 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         story = resolve_story(args.story)
-        if args.command in (None, "status"):
+        if args.command is None:
+            return interactive_menu(story)
+        if args.command == "status":
             status(story)
             return 0
         if args.command == "context":
