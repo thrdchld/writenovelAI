@@ -1,170 +1,114 @@
-# Instruksi AI untuk writenovelAI
+# Instruksi Operasional AI — writenovelAI
 
-Dokumen ini adalah pintu masuk operasional. Baca sebelum mengerjakan novel di repository ini. Jika instruksi di sini bertentangan dengan dokumen metodologi, ikuti prinsip yang lebih ketat dan laporkan konflik; jangan diam-diam memilih aturan yang mengubah cerita.
+Baca dokumen ini sebelum bekerja. Repository adalah sumber kebenaran proyek, bukan sekadar backup. Jangan mengklaim menjalankan program, membaca file, menguji, atau menyimpan perubahan jika tindakan itu tidak benar-benar dilakukan.
 
-## Peran repository
+## Pembagian tanggung jawab
 
-Repository ini memiliki dua fungsi:
-1. **Knowledge base:** standar, metode, template, dan instruksi kerja AI.
-2. **Workspace penulisan:** tempat menyimpan seluruh dokumen dan naskah setiap novel agar keputusan serta progres dapat dilacak.
+- **Python:** membaca sumber, menyusun memori berbasis sumber, membangun paket konteks, memeriksa struktur, memverifikasi file, dan mengorkestrasi proses.
+- **AI:** memahami cerita, merancang sebab-akibat, mengembangkan karakter, menilai planting-payoff, mengambil keputusan kreatif dalam ruang yang diizinkan, mengaudit, dan menulis prosa.
+- **Git:** melacak perubahan. Jangan menimpa perubahan pengguna yang belum diperiksa.
 
-Jangan mencampur naskah satu novel dengan novel lain. Setiap novel memiliki folder proyek sendiri di `stories/<slug-judul>/`.
+## Sumber kebenaran dan status informasi
 
-## Titik mulai: pengguna hanya memberi premis
+Urutan sumber: dokumen kanon/konsep proyek dan decision log yang disetujui, outline aktif, blueprint, naskah aktual, lalu State Update yang bersumber dari naskah. Jika sumber bertentangan, jangan memilih diam-diam. Tunjukkan lokasi konflik dan usulkan perbaikan.
 
-Anggap premis sebagai input awal yang cukup untuk memulai. Jangan meminta pengguna menyiapkan outline, jumlah bab, biodata tokoh, atau blueprint terlebih dahulu.
+Gunakan label:
+- **KANON:** fakta yang sudah diputuskan atau terjadi.
+- **WAJIB:** hasil/peristiwa harus ada, cara penyampaian masih terbuka.
+- **FLEKSIBEL:** ruang improvisasi yang tidak mengubah fungsi atau fakta.
+- **BELUM DIPUTUSKAN:** jangan mengarang jawaban lalu memperlakukannya sebagai fakta.
 
-Dari premis, kerjakan secara bertahap:
-1. Tafsirkan daya tarik inti premis dan hal yang belum ditentukan.
-2. Kembangkan konsep cerita, genre/subgenre yang cocok, pembaca sasaran, pengalaman membaca, konflik, taruhan, dan batas realitas.
-3. Bangun karakter dan dunia seperlunya, bukan biodata panjang yang tidak berfungsi.
-4. Rancang alur lengkap dari awal sampai akhir dan tentukan jumlah bab berdasarkan kebutuhan cerita.
-5. Buat blueprint bab dan audit rancangan keseluruhan.
-6. Tulis hanya setelah rancangan yang diperlukan siap.
-7. Tulis satu bab per giliran kerja, lalu lakukan State Update dan audit.
+AI tidak boleh mengubah canon, keputusan, hubungan inti, mekanisme konflik, atau akhir secara diam-diam.
 
-Jangan menganggap setiap keputusan harus ditanyakan kepada pengguna. Ambil keputusan kreatif yang wajar secara mandiri. Namun, tandai keputusan besar yang belum memiliki dasar atau yang akan mengubah identitas, mekanisme utama, hubungan inti, penyebab konflik, atau akhir cerita.
+## Alur dari premis
 
-## Kategori status informasi
+Premis adalah input awal yang cukup. AI mengembangkan konsep, karakter, dunia, alur lengkap, jumlah bab sesuai kebutuhan, dan blueprint. Jangan meminta pengguna mengisi formulir panjang jika keputusan kreatif dapat diambil secara wajar. Tandai hanya ketidakpastian yang benar-benar memengaruhi identitas cerita atau logika utama.
 
-Gunakan empat label ini secara konsisten:
-- **KANON:** fakta yang sudah diputuskan atau telah terjadi dalam naskah dan tidak boleh diubah diam-diam.
-- **WAJIB:** hasil/peristiwa yang harus ada, tetapi cara penyampaiannya masih terbuka.
-- **FLEKSIBEL:** ruang pengembangan yang tidak mengubah fakta, sebab-akibat, atau fungsi cerita.
-- **BELUM DIPUTUSKAN:** pertanyaan penting yang belum memiliki jawaban. Jangan mengarang jawaban lalu memperlakukannya sebagai kanon.
+Sebelum penulisan, audit outline dan blueprint:
+- rantai sebab-akibat dan konsekuensi;
+- motivasi dan pilihan karakter;
+- character arc dan perubahan hubungan;
+- timeline kronologis versus urutan penyajian;
+- pengetahuan karakter dan pembaca pada setiap titik;
+- planting, perkembangan petunjuk, dan payoff;
+- batas kewenangan, prosedur, dan realisme dunia;
+- keputusan kanon dan dampak perubahan lintas bab.
 
-Bedakan fakta dari dugaan, interpretasi, dan kemungkinan.
+Setiap temuan audit harus menyebut lokasi, bukti, tingkat kepastian, dampak, dan perbaikan minimum. Pisahkan kontradiksi pasti, risiko, dan preferensi subjektif. Audit tidak otomatis memberi izin mengedit.
+
+## Gunakan Python sebagai gerbang data
+
+Jalankan dari root repository. Jika beberapa proyek tersedia, selalu tentukan slug.
+
+```bash
+python novel.py --story SLUG status
+python novel.py --story SLUG memory --before NOMOR_BAB
+python novel.py --story SLUG context NOMOR_BAB
+python novel.py --story SLUG context NOMOR_BAB --rewrite
+python novel.py --story SLUG audit
+python novel.py --story SLUG audit --prompt
+python novel.py --story SLUG verify NOMOR_BAB
+```
+
+- `status`: lihat progres file.
+- `memory --before N`: susun memori dari dokumen inti dan State Update sebelum bab N. Jangan gunakan memori masa depan.
+- `context N`: buat paket konteks lengkap. Baca seluruh file hasil yang dilaporkan Python sebelum menulis.
+- `context N --rewrite`: hanya setelah pengguna secara eksplisit meminta rewrite.
+- `audit`: jalankan pemeriksaan deterministik.
+- `audit --prompt`: buat paket sumber dan instruksi untuk audit AI. Baca dan kerjakan auditnya, jangan menganggap prompt sebagai hasil audit.
+- `verify N`: cek keberadaan naskah, blueprint, dan State Update. Ini bukan penilaian kualitas.
+
+Untuk menulis langsung sebagai AI:
+1. Jalankan `context N`.
+2. Baca paket konteks dari awal sampai akhir.
+3. Tulis prosa lengkap ke target naskah yang disebutkan.
+4. Buat/perbarui State Update berdasarkan kejadian aktual di naskah, bukan rencana blueprint.
+5. Jalankan `verify N`.
+6. Audit kesesuaian naskah terhadap blueprint dan periksa konsekuensi ke bab berikutnya.
+7. Lanjutkan ke bab berikutnya hanya setelah naskah dan State Update tersimpan.
+
+Jika target sudah ada, jangan timpa tanpa persetujuan eksplisit. Batch harus berurutan, tidak paralel. Setelah tiap bab, perbarui State Update sebelum mengambil konteks bab berikutnya.
+
+## State Update dan memori
+
+State Update adalah catatan faktual, bukan prosa ulang atau interpretasi bebas. Catat seperlunya:
+- waktu dan lokasi aktual;
+- kondisi fisik/emosional yang relevan;
+- apa yang diketahui, diduga, dan belum diketahui setiap karakter;
+- fakta baru dan sumbernya;
+- perubahan hubungan, tujuan, sumber daya, atau konflik;
+- benda/dokumen/petunjuk dan statusnya;
+- janji, keputusan, konsekuensi, dan pertanyaan terbuka.
+
+Jangan menulis State Update untuk peristiwa yang hanya direncanakan tetapi tidak muncul dalam naskah. Jangan menaikkan dugaan menjadi kanon. Perubahan kanon harus melalui decision log dan menyebut dampak pada bab terkait.
+
+## Prinsip anti-halusinasi
+
+- Jangan mengisi celah sumber dengan detail yang terdengar masuk akal tetapi tidak didukung.
+- Jangan membuat karakter mengetahui sesuatu sebelum ada jalur informasi.
+- Jangan memberi bukti lebih kuat daripada yang benar-benar ditampilkan.
+- Jangan membuat payoff tanpa planting yang cukup, atau menganggap setiap detail kecil wajib menjadi misteri.
+- Jangan mengubah blueprint agar membenarkan kesalahan naskah.
+- Jika ada ketidakpastian lokal yang tidak merusak cerita, pilih opsi paling sederhana dan tandai sebagai fleksibel. Jika menyentuh struktur inti, hentikan bagian yang bergantung padanya dan laporkan.
+- Hindari mengulang ringkasan dan memori yang tidak relevan. Gunakan konteks bab yang sudah disiapkan Python.
 
 ## Mode kerja
 
-Pilih mode sesuai tahap; jangan mencampur semua pekerjaan dalam satu keluaran.
+1. **ARCHITECT:** konsep, karakter, dunia, alur makro, dan jumlah bab.
+2. **BLUEPRINT:** urutan adegan, tujuan, perubahan, pengetahuan tokoh/pembaca, sebab-akibat, batas fakta.
+3. **WRITER:** menulis prosa, tidak memparafrasekan blueprint.
+4. **AUDITOR:** melaporkan temuan berbukti tanpa mengedit.
+5. **REPAIRER:** memperbaiki masalah dengan perubahan terkecil dan menelusuri dampak.
+6. **LIBRARIAN:** menjaga indeks, status, dan struktur file tanpa mengubah cerita.
 
-### 1. ARCHITECT
-Membangun konsep, karakter, dunia, alur makro, jumlah bab, dan rancangan akhir dari premis. Menghasilkan dokumen perencanaan. Tidak menulis naskah penuh.
+## Standar prosa
 
-### 2. BLUEPRINT
-Menyusun blueprint bab berdasarkan rancangan aktif. Menjaga kronologi dan urutan penyajian sebagai dua hal berbeda. Memeriksa pengetahuan tokoh dan pembaca. Tidak menambah fakta struktural tanpa mencatat keputusan.
+Gunakan paragraf normal, bahasa alami, dialog dengan suara berbeda, detail yang bekerja untuk adegan, dan emosi yang muncul dari tindakan. Hindari kalimat puitis yang dipaksakan, metafora berulang, dialog eksposisi, repetisi informasi, cliffhanger buatan, serta satu kalimat per baris. Blueprint menjaga fungsi dan logika, bukan mengunci setiap kalimat.
 
-### 3. WRITER
-Menulis satu bab berdasarkan blueprint dan paket konteks bab. Prosa harus terasa sebagai cerita, bukan parafrasa blueprint. Tidak mengubah kanon, urutan peristiwa wajib, atau pengungkapan utama secara diam-diam.
+## GitHub Actions
 
-### 4. AUDITOR
-Memeriksa rancangan, naskah, atau kontinuitas. Setiap temuan harus memiliki lokasi dan bukti. Pisahkan kesalahan pasti, risiko, dan preferensi subjektif. Jangan mengedit ketika hanya diminta audit.
+Workflow pemeriksaan menjalankan Python compile, unit test, dan audit deterministik. Lolos workflow hanya berarti pemeriksaan teknis tersebut lolos; bukan bukti novel sudah konsisten atau layak terbit.
 
-### 5. REPAIRER
-Memperbaiki temuan audit dengan perubahan terkecil yang cukup. Pertahankan bagian yang sudah benar. Telusuri dampak terhadap dokumen/bab lain dan perbarui hanya yang terdampak.
+## Larangan klaim
 
-### 6. LIBRARIAN
-Menjaga struktur folder, indeks, status dokumen, decision log, dan tautan antarfile. Tidak mengubah isi cerita tanpa alasan.
-
-## Protokol sebelum menulis bab
-
-Sebelum menulis, baca:
-1. `AI_INSTRUCTIONS.md` dan dokumen metode yang relevan.
-2. `stories/<slug>/README.md` untuk status dan indeks proyek.
-3. Rancangan makro/outline yang berstatus aktif.
-4. Blueprint bab yang akan ditulis.
-5. State Update bab sebelumnya.
-6. Catatan kontinuitas yang relevan: timeline, character knowledge, story state, character behavior.
-7. Keputusan kanon dan pertanyaan terbuka yang berpengaruh pada bab tersebut.
-
-Jangan menganggap ringkasan percakapan sebagai sumber kanon jika dokumen proyek menyatakan hal berbeda. Jika ada konflik, hentikan bagian yang bergantung pada konflik itu, tunjukkan bukti, lalu usulkan penyelesaian.
-
-## Protokol penulisan
-
-- Satu bab per file dan satu bab per siklus kerja.
-- Tulis prosa lengkap, bukan ringkasan atau kerangka.
-- Gunakan paragraf normal.
-- Jangan memecah setiap kalimat menjadi baris sendiri.
-- Jangan memaksakan kalimat puitis, metafora, simbol, atau cliffhanger.
-- Jangan menjelaskan emosi yang sudah jelas dari tindakan/dialog.
-- Jangan membuat semua tokoh memiliki suara yang sama.
-- Jangan mengulang informasi demi memastikan pembaca paham.
-- Jangan menambahkan fakta besar hanya agar bab terasa dramatis.
-- Panjang bab mengikuti kebutuhan adegan dan target proyek, bukan angka universal.
-- Jika detail fleksibel dikembangkan, pastikan tidak bertentangan dengan kanon.
-- Jika menemukan lubang yang menghalangi penulisan, jangan menutupinya dengan improvisasi. Catat sebagai BELUM DIPUTUSKAN dan jelaskan pilihan paling masuk akal.
-
-## Setelah menulis
-
-Setiap bab yang selesai harus diikuti:
-1. State Update berdasarkan hal yang benar-benar terjadi di naskah.
-2. Pemeriksaan kesesuaian blueprint.
-3. Pemeriksaan kronologi, lokasi, benda, pengetahuan tokoh/pembaca, dan perubahan hubungan.
-4. Audit prosa untuk kenyamanan membaca.
-5. Catatan temuan dan status bab: DRAFT, NEEDS_REPAIR, atau ACCEPTED.
-
-Jangan menandai ACCEPTED jika ada kontradiksi kritis atau masalah besar yang belum diselesaikan. Masalah kecil boleh dicatat tanpa menghambat progres.
-
-## Aturan perubahan
-
-- Jangan menimpa keputusan kanon tanpa mencatat alasan.
-- Jangan mengubah blueprint yang benar hanya untuk membenarkan prosa yang salah.
-- Jangan mengubah naskah agar sesuai dengan State Update yang keliru.
-- Perubahan struktural harus masuk ke `decision-log.md`, termasuk alasan dan file/bab terdampak.
-- Perubahan lokal tidak boleh memicu penulisan ulang seluruh novel.
-- Jangan menghapus tanggal/waktu secara massal; pertahankan orientasi waktu.
-- Jangan mengubah judul, genre, POV utama, mekanisme misteri, hubungan inti, atau akhir tanpa alasan dan pencatatan.
-- Jangan membuat file dummy, placeholder kosong, atau menyatakan pekerjaan selesai jika belum diverifikasi.
-
-
-## Penggunaan wajib program `novel.py`
-
-Python adalah pengelola data dan status proyek. AI adalah pihak yang memahami konteks, mengambil keputusan naratif, dan menulis prosa. Ada dua jalur yang berbeda; pilih sesuai permintaan pengguna.
-
-### Jalur A: AI menulis langsung dengan bantuan Python
-
-Gunakan jalur ini ketika pengguna meminta AI menulis bab dan lingkungan AI memiliki akses terminal serta akses baca/tulis ke salinan repository.
-
-1. Pastikan terminal berada di direktori utama repository.
-2. Tentukan nama folder proyek di `stories/`. Jika hanya ada satu proyek, argumen `--story` boleh dihilangkan. Jika ada beberapa proyek, wajib tentukan `--story <slug-folder>`.
-3. Periksa status jika perlu dengan `python novel.py --status --story SLUG`. Jalankan `python novel.py --context NOMOR_BAB --story SLUG` untuk bab baru. Jika file bab sudah ada, jangan menimpanya; minta persetujuan rewrite. Hanya jika pengguna secara eksplisit meminta rewrite, jalankan `python novel.py --context NOMOR_BAB --story SLUG --rewrite`.
-4. Baca seluruh file paket konteks yang dilaporkan Python di `stories/<slug>/workbench/context-chapter-NNN.md`. Jangan menulis hanya berdasarkan ringkasan terminal.
-5. Tulis naskah lengkap dengan kemampuan AI sendiri ke target `stories/<slug>/manuscript/chapter-NNN.md` yang tercantum dalam paket konteks.
-6. Buat atau perbarui State Update faktual ke target `stories/<slug>/state-updates/chapter-NNN.md`. Catat hanya kejadian yang benar-benar ada di naskah.
-7. Jalankan `python novel.py --verify NOMOR_BAB --story SLUG`.
-8. Jika verifikasi menyatakan naskah tidak ditemukan/kosong, perbaiki atau laporkan kegagalan. Jika State Update belum ada, lengkapi sebelum melanjutkan ke bab berikutnya.
-9. Untuk batch, ulangi langkah ini satu bab demi satu bab. Bab berikutnya baru boleh mengambil konteks setelah naskah dan State Update bab sebelumnya tersimpan. Jangan menulis beberapa bab paralel.
-
-Perintah pendukung:
-- `python novel.py --status --story SLUG`: melihat status bab tanpa menu interaktif.
-- `python novel.py --context NOMOR_BAB --story SLUG`: membuat paket konteks untuk bab baru dan menolak jika naskah target sudah ada.
-- `python novel.py --context NOMOR_BAB --story SLUG --rewrite`: membuat paket konteks rewrite setelah ada instruksi eksplisit pengguna.
-- `python novel.py --verify NOMOR_BAB --story SLUG`: memeriksa keberadaan naskah dan State Update.
-
-Jalur ini tidak menjalankan AGY dari dalam Python. AI yang sedang aktif adalah penulisnya.
-
-### Jalur B: Python menjalankan AGY
-
-Gunakan jalur ini jika pengguna secara khusus meminta pengelola interaktif atau meminta AGY mengerjakan penulisan.
-
-1. Jalankan `python novel.py` dari direktori utama repository.
-2. Ikuti menu untuk melihat status, menulis satu bab, menulis batch, atau menghapus naskah.
-3. Untuk rewrite atau penghapusan, ikuti konfirmasi program. Jangan melewati konfirmasi.
-4. Dalam batch, biarkan program menjalankan satu proses AGY per bab secara berurutan.
-5. Tunggu proses selesai dan periksa ringkasan serta file hasil.
-6. Jika AGY gagal, permission menolak penulisan, kuota/rate limit tercapai, atau file hasil tidak dapat diverifikasi, hentikan proses. Laporkan bab terakhir yang berhasil dan bab yang gagal.
-
-### Batas akses dan larangan klaim
-
-- Instruksi ini tidak memberi AI akses terminal secara otomatis. Jika AI hanya memiliki akses GitHub/API atau percakapan tanpa terminal ke repository, AI tidak dapat menjalankan perintah Python tersebut.
-- Jangan berpura-pura telah menjalankan Python, membaca paket konteks, atau memverifikasi file jika tindakan itu tidak benar-benar dilakukan.
-- Jika pengguna meminta AI menulis langsung, jangan menjalankan menu yang memanggil AGY; gunakan Jalur A.
-- Jika pengguna meminta program menjalankan AGY, jangan menggantinya dengan penulisan langsung; gunakan Jalur B.
-- Status verifikasi hanya memastikan file ada dan tidak kosong. Itu bukan bukti kualitas atau kelulusan audit.
-- Jangan menggunakan opsi permission berisiko untuk memaksa penulisan.
- 
-## Penggunaan GitHub
-
-GitHub adalah sumber kebenaran proyek (source of truth), bukan sekadar tempat backup.
-- Simpan semua keputusan dan hasil kerja yang sudah disepakati ke folder novel yang benar.
-- Gunakan nama file konsisten dan mudah dicari.
-- Perbarui indeks proyek setelah menambah/mengubah dokumen.
-- Buat commit dengan pesan yang menjelaskan perubahan.
-- Jangan menimpa perubahan pengguna yang belum diperiksa.
-- Jika akses tulis GitHub tidak tersedia, berikan hasil dalam format file lengkap dan jelaskan bahwa belum tersimpan ke repo.
-- Jangan mengklaim file sudah tersimpan sebelum commit atau operasi tulis berhasil dan diverifikasi.
-
-## Standar selesai
-
-Sebuah novel dianggap selesai secara proses jika naskah lengkap, catatan kontinuitas terakhir diperbarui, audit akhir dilakukan, daftar masalah tersisa transparan, dan status tiap bab dapat ditelusuri. Status ini tidak berarti karya sempurna atau pasti diterima penerbit.
+Jangan menyatakan file tersimpan sebelum operasi Git berhasil. Jangan menyatakan pengujian lolos jika workflow atau test belum benar-benar dijalankan. Jika AI tidak memiliki akses terminal, jangan berpura-pura telah menjalankan Python; gunakan tool repository yang tersedia atau minta pengguna menjalankan perintah secara lokal.
