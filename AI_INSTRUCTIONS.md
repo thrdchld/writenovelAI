@@ -110,33 +110,49 @@ Jangan menandai ACCEPTED jika ada kontradiksi kritis atau masalah besar yang bel
 
 ## Penggunaan wajib program `novel.py`
 
-Program ini adalah jalur operasional utama untuk menjalankan penulisan bab melalui Antigravity CLI. Jika pengguna meminta AI menggunakan program ini, atau meminta penulisan bab melalui alur pengelola bab, jangan menggantinya dengan penulisan langsung atau sekadar membuat prompt manual.
+Python adalah pengelola data dan status proyek. AI adalah pihak yang memahami konteks, mengambil keputusan naratif, dan menulis prosa. Ada dua jalur yang berbeda; pilih sesuai permintaan pengguna.
 
-### Kapan harus digunakan
-- Gunakan `python novel.py` ketika lingkungan kerja memiliki akses terminal ke salinan repository ini, Python, dan Antigravity CLI (`agy`) yang sudah terpasang serta terautentikasi.
-- Gunakan program untuk melihat status bab, memilih satu atau beberapa bab, menulis/rewrite, dan menghapus naskah sesuai pilihan pengguna.
-- Untuk permintaan batch, biarkan program memproses bab secara berurutan. Jangan menjalankan beberapa proses penulisan bab secara paralel.
-- Jangan memilih rewrite atau menghapus naskah tanpa persetujuan eksplisit pengguna. Ikuti konfirmasi yang diminta program.
-- Jangan mengubah file naskah secara langsung di luar program saat pengguna secara khusus meminta alur `novel.py`.
+### Jalur A: AI menulis langsung dengan bantuan Python
 
-### Prosedur AI
-1. Pastikan terminal berada di direktori utama repository, yaitu direktori yang berisi `novel.py`.
-2. Periksa prasyarat dengan `python --version` dan `agy --help` bila belum diketahui. Jangan menganggap CLI tersedia hanya karena dokumentasinya ada.
-3. Jalankan `python novel.py` secara interaktif dan ikuti menu. Jangan mengarang pilihan menu atau mengirim input yang belum diminta program.
-4. Untuk penulisan satu bab, pilih menu tulis satu bab dan masukkan nomor bab yang diminta pengguna.
-5. Untuk beberapa bab, pilih menu batch dan masukkan daftar/rentang bab yang diminta. Program akan meminta konfirmasi sebelum mulai.
-6. Tunggu sampai setiap proses AGY selesai. Jangan menganggap bab selesai hanya karena proses mulai atau prompt berhasil dibuat.
-7. Periksa hasil terminal dan file naskah yang dituju. Program harus mendeteksi file naskah yang ada dan tidak kosong. Perhatikan juga peringatan jika State Update tidak dibuat.
-8. Jika AGY gagal, permission menolak penulisan, kuota/rate limit tercapai, atau file hasil tidak dapat diverifikasi, hentikan proses. Laporkan bab terakhir yang berhasil, bab yang gagal, pesan error, dan file prompt di `workbench/` jika tersedia. Jangan mengklaim bab gagal sebagai selesai.
-9. Setelah selesai, laporkan ringkasan status. Keberadaan file bukan bukti bab telah lolos audit; audit tetap merupakan tahap terpisah.
+Gunakan jalur ini ketika pengguna meminta AI menulis bab dan lingkungan AI memiliki akses terminal serta akses baca/tulis ke salinan repository.
+
+1. Pastikan terminal berada di direktori utama repository.
+2. Tentukan nama folder proyek di `stories/`. Jika hanya ada satu proyek, argumen `--story` boleh dihilangkan. Jika ada beberapa proyek, wajib tentukan `--story <slug-folder>`.
+3. Jalankan `python novel.py --context NOMOR_BAB --story SLUG`.
+4. Baca seluruh file paket konteks yang dilaporkan Python di `stories/<slug>/workbench/context-chapter-NNN.md`. Jangan menulis hanya berdasarkan ringkasan terminal.
+5. Tulis naskah lengkap dengan kemampuan AI sendiri ke target `stories/<slug>/manuscript/chapter-NNN.md` yang tercantum dalam paket konteks.
+6. Buat atau perbarui State Update faktual ke target `stories/<slug>/state-updates/chapter-NNN.md`. Catat hanya kejadian yang benar-benar ada di naskah.
+7. Jalankan `python novel.py --verify NOMOR_BAB --story SLUG`.
+8. Jika verifikasi menyatakan naskah tidak ditemukan/kosong, perbaiki atau laporkan kegagalan. Jika State Update belum ada, lengkapi sebelum melanjutkan ke bab berikutnya.
+9. Untuk batch, ulangi langkah ini satu bab demi satu bab. Bab berikutnya baru boleh mengambil konteks setelah naskah dan State Update bab sebelumnya tersimpan. Jangan menulis beberapa bab paralel.
+
+Perintah pendukung:
+- `python novel.py --status --story SLUG`: melihat status bab tanpa menu interaktif.
+- `python novel.py --context NOMOR_BAB --story SLUG`: membuat paket konteks untuk AI.
+- `python novel.py --verify NOMOR_BAB --story SLUG`: memeriksa keberadaan naskah dan State Update.
+
+Jalur ini tidak menjalankan AGY dari dalam Python. AI yang sedang aktif adalah penulisnya.
+
+### Jalur B: Python menjalankan AGY
+
+Gunakan jalur ini jika pengguna secara khusus meminta pengelola interaktif atau meminta AGY mengerjakan penulisan.
+
+1. Jalankan `python novel.py` dari direktori utama repository.
+2. Ikuti menu untuk melihat status, menulis satu bab, menulis batch, atau menghapus naskah.
+3. Untuk rewrite atau penghapusan, ikuti konfirmasi program. Jangan melewati konfirmasi.
+4. Dalam batch, biarkan program menjalankan satu proses AGY per bab secara berurutan.
+5. Tunggu proses selesai dan periksa ringkasan serta file hasil.
+6. Jika AGY gagal, permission menolak penulisan, kuota/rate limit tercapai, atau file hasil tidak dapat diverifikasi, hentikan proses. Laporkan bab terakhir yang berhasil dan bab yang gagal.
 
 ### Batas akses dan larangan klaim
-- Instruksi ini tidak memberi AI akses terminal secara otomatis. Jika AI hanya memiliki akses GitHub/API atau percakapan tanpa terminal yang terhubung ke lingkungan repository dan `agy`, AI tidak dapat menjalankan program tersebut.
-- Dalam kondisi tanpa terminal, jangan berpura-pura telah menjalankan `novel.py`. Jelaskan keterbatasannya dan minta pengguna menjalankan program di lingkungan yang memiliki prasyarat, atau tawarkan perubahan file repository secara langsung hanya jika pengguna menyetujuinya.
-- Jangan mengganti perintah `python novel.py` dengan menjalankan `agy -p` secara langsung ketika pengguna secara eksplisit meminta program ini digunakan.
-- Jangan melewati konfirmasi rewrite/penghapusan, jangan menghapus file lain, dan jangan menggunakan opsi permission berisiko untuk memaksa penulisan.
-- Jangan menyatakan proses berhasil sebelum status proses dan file hasil diperiksa.
 
+- Instruksi ini tidak memberi AI akses terminal secara otomatis. Jika AI hanya memiliki akses GitHub/API atau percakapan tanpa terminal ke repository, AI tidak dapat menjalankan perintah Python tersebut.
+- Jangan berpura-pura telah menjalankan Python, membaca paket konteks, atau memverifikasi file jika tindakan itu tidak benar-benar dilakukan.
+- Jika pengguna meminta AI menulis langsung, jangan menjalankan menu yang memanggil AGY; gunakan Jalur A.
+- Jika pengguna meminta program menjalankan AGY, jangan menggantinya dengan penulisan langsung; gunakan Jalur B.
+- Status verifikasi hanya memastikan file ada dan tidak kosong. Itu bukan bukti kualitas atau kelulusan audit.
+- Jangan menggunakan opsi permission berisiko untuk memaksa penulisan.
+ 
 ## Penggunaan GitHub
 
 GitHub adalah sumber kebenaran proyek (source of truth), bukan sekadar tempat backup.
