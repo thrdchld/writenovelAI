@@ -23,7 +23,8 @@
 - Setelah mengukur segmen tengah, Salma dan Dito kembali ke ujung gang dan melihat Dimas keluar dari pintu samping lorong sambil membawa dua bungkusan paket.
 - Salma meminta izin bertanya mengenai lorong tersebut.
 - Dimas menolak difoto ketika melihat Dito memegang ponsel, dan meminta kamera tidak diarahkan kepadanya.
-- Dimas mengonfirmasi bahwa ada rumah di belakang tembok tempat ibunya dan keluarga lain tinggal, tetapi menolak didata sebelum ada kejelasan tujuan resmi.
+- Dimas menyatakan ada rumah di belakang tembok tempat ibunya dan keluarga lain tinggal. Pernyataan ini merupakan keterangan lisan Dimas, bukan hasil verifikasi langsung tim.
+- Dimas menolak didata sebelum ada kejelasan tujuan resmi.
 - Salma menjelaskan bahwa tugas timnya hanya mendata kondisi fisik jalan dan saluran untuk verifikasi peta, bukan melakukan penggusuran atau menentukan hak tanah.
 - Dimas tetap bersikap curiga karena merasa pendataan di masa lalu tidak pernah diikuti penjelasan tertulis, lalu pergi mengantar paket.
 - Salma dan Dito mencatat lorong tersebut sebagai akses aktif dengan keterangan lisan adanya hunian di belakang tembok, serta membuat catatan penolakan wawancara dan dokumentasi dari warga.
@@ -34,10 +35,10 @@
 
 | Karakter | Perubahan |
 |---|---|
-| **Salma** | Menemukan ketidaksesuaian fisik antara peta kerja dan ujung Gang Kenari (lorong aktif tidak tercatat); mengetahui ada hunian di balik tembok dari keterangan Dimas tanpa mengetahui jumlah pasti atau statusnya; mencatat penolakan wawancara. |
+| **Salma** | Menemukan ketidaksesuaian fisik antara peta kerja dan ujung Gang Kenari (lorong aktif tidak tercatat); menerima keterangan lisan bahwa ada hunian di balik tembok; belum mengetahui jumlah pasti, identitas seluruh penghuni, atau status hunian; mencatat penolakan wawancara. |
 | **Dito** | Mengukur lebar jalan, selokan, dan lorong samping (1,22 m); mencatat koordinat anomali lapangan serta keterangan penolakan wawancara di buku lapangan. |
-| **Pak Bowo** | Menunjukkan keberadaan lorong samping yang digunakan warga di belakang tembok kepada tim survei. |
-| **Dimas** | Mengakui ada rumah dan penghuni di belakang tembok, tetapi menolak difoto dan menolak didata lebih lanjut karena ketidakpercayaan terhadap pendataan. |
+| **Pak Bowo** | Menunjukkan keberadaan lorong samping yang menurut keterangannya digunakan warga di belakang tembok kepada tim survei. |
+| **Dimas** | Menolak difoto dan menolak didata lebih lanjut sebelum tujuan resmi dijelaskan; menyampaikan bahwa ibunya dan keluarga lain tinggal di rumah di belakang tembok. |
 
 ---
 
@@ -46,8 +47,8 @@
 - Lebar badan jalan ujung Gang Kenari adalah 3,2 meter dengan selokan sisi kanan selebar 60 cm (selisih 10 cm dari peta dasar).
 - Di sisi kiri tembok penahan ujung Gang Kenari terdapat lorong samping selebar 1,22 meter dengan pintu samping dari seng berbingkai kayu, lantai cor semen, bekas roda motor, dan parit kecil menuju saluran utama.
 - Lorong samping tersebut tidak tercantum dalam peta kerja proyek.
-- Lorong tersebut merupakan akses aktif menuju hunian di belakang tembok.
-- Dimas tinggal bersama ibunya di salah satu rumah di belakang tembok (bersama keluarga lain), bekerja sebagai kurir paket, dan menolak difoto maupun didata oleh tim survei pada kunjungan ini.
+- Secara fisik lorong menunjukkan tanda penggunaan aktif; Pak Bowo menyatakan lorong digunakan warga di belakang tembok.
+- Dimas menyatakan bahwa ada rumah di belakang tembok tempat ibunya dan keluarga lain tinggal. Pada akhir bab, jumlah, identitas penghuni, dan kondisi hunian belum diverifikasi oleh Salma.
 - Tim menandai ujung Gang Kenari sebagai titik anomali lapangan dengan catatan akses aktif dan penolakan wawancara.
 
 ---

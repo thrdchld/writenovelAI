@@ -1,6 +1,6 @@
 # writenovelAI
 
-Sistem kerja penulisan novel berbantuan AI. Python mengelola sumber cerita, memori, konteks, pemeriksaan struktural, dan eksekusi. AI menangani pemahaman naratif, keputusan kreatif, audit interpretatif, dan penulisan prosa.
+Sistem kerja penulisan novel berbantuan AI. Python mengelola sumber cerita, memori, konteks, pemeriksaan struktural, dan eksekusi. AI menangani pemahaman naratif, keputusan kreatif, audit interpretatif, dan penulisan prosa. AGY hanyalah adapter opsional.
 
 ## Mulai
 
@@ -21,9 +21,9 @@ Urutan argumen: `python novel.py --story SLUG PERINTAH`. Jika hanya ada satu pro
 
 1. Berikan premis. AI membangun konsep, karakter, dunia, outline, dan blueprint.
 2. Jalankan `audit` untuk pemeriksaan deterministik.
-3. Jalankan `audit --prompt` untuk membuat paket audit yang dibaca AI. Audit AI memeriksa sebab-akibat, motivasi, character arc, timeline, knowledge state, planting-payoff, dan keputusan.
+3. Jalankan `audit --prompt` untuk membuat paket audit yang dibaca AI.
 4. Setelah outline/blueprint disepakati, jalankan `context NOMOR`. Python menyusun sumber yang relevan tanpa memasukkan State Update dari masa depan.
-5. AI membaca paket konteks, menulis naskah, dan membuat State Update faktual.
+5. AI membaca paket konteks, meminta data tambahan melalui Python bila diperlukan, menulis naskah, dan membuat State Update faktual.
 6. Jalankan `verify NOMOR` dan `audit` lagi. Perbarui memori hanya berdasarkan naskah yang benar-benar ditulis dan keputusan yang disetujui.
 
 ## Perintah
@@ -35,9 +35,9 @@ Urutan argumen: `python novel.py --story SLUG PERINTAH`. Jika hanya ada satu pro
 | `context N` | Membuat paket konteks bab untuk AI |
 | `context N --rewrite` | Mengizinkan paket rewrite; hanya gunakan setelah persetujuan pengguna |
 | `audit` | Pemeriksaan struktur deterministik |
-| `audit --prompt` | Selain cek deterministik, membuat paket audit untuk AI di workbench |
+| `audit --prompt` | Membuat paket audit untuk AI di workbench |
 | `verify N` | Memastikan naskah, blueprint, dan State Update tersedia |
-| `agy 1-5,8` | Menjalankan AGY secara berurutan; bab yang sudah ada dilewati |
+| `agy 1-5,8` | Adapter opsional untuk menjalankan AGY secara berurutan |
 | `agy 5 --rewrite` | Menjalankan AGY untuk rewrite yang diminta secara eksplisit |
 
 ## Referensi kerja
@@ -51,6 +51,7 @@ Urutan argumen: `python novel.py --story SLUG PERINTAH`. Jika hanya ada satu pro
 - [Kontrak operasional AI](docs/06-ai-operating-contract.md)
 - [GitHub sebagai workspace](docs/07-github-writing-workspace.md)
 - [Arsitektur Novel Engine v2](docs/08-engine-architecture.md)
+- [Arsitektur Agent-Agnostic](docs/09-agent-agnostic-architecture.md)
 
 **Template**
 - [Template proyek novel](templates/novel-project-readme-template.md)
@@ -82,25 +83,16 @@ Tidak ada pemeriksaan otomatis yang menjamin cerita bebas kesalahan. Temuan AI h
 
 Workflow `.github/workflows/python-check.yml` menjalankan compile, unit test, dan audit struktur pada push, pull request, serta pemicu manual. Workflow ini tidak memanggil model AI dan tidak membutuhkan API key.
 
-## GitHub Issue chatbot
-
-Workflow `.github/workflows/novel-bot.yml` menerima perintah dari komentar issue oleh pemilik repository:
-
-```text
-@novelbot status gang-yang-hilang-dari-peta
-@novelbot audit gang-yang-hilang-dari-peta
-@novelbot write gang-yang-hilang-dari-peta 1
-@novelbot write gang-yang-hilang-dari-peta 1-5
-```
-
-Agar aktif, atur Repository Secret `NOVEL_AI_API_KEY` serta Repository Variables `NOVEL_AI_MODEL` dan opsional `NOVEL_AI_BASE_URL` (default `https://api.openai.com/v1`). Endpoint harus kompatibel dengan OpenAI Chat Completions. Bot menolak komentar selain dari pemilik repository, tidak memproses pull request, dan tidak menimpa naskah/State Update yang sudah ada. Penulisan bot disimpan dalam commit dan tetap harus diaudit.
+Workflow `.github/workflows/novel-bot.yml` menyediakan bot Issue berbasis API provider yang kompatibel dengan OpenAI Chat Completions. Bot ini berbeda dari agen web interaktif seperti ChatGPT atau Gemini. Lihat [arsitektur agent-agnostic](docs/09-agent-agnostic-architecture.md) untuk perbedaan kedua mode dan rencana pengembangannya.
 
 ## Struktur kode
 
 - `novel.py`: satu pintu masuk CLI.
 - `novel_engine/project.py`: penemuan proyek, pembacaan sumber, memori, dan paket konteks.
 - `novel_engine/audit.py`: pemeriksaan deterministik dan paket instruksi audit AI.
-- `novel_engine/cli.py`: antarmuka perintah dan menu interaktif.\n- `novel_engine/agy.py`: adapter AGY berurutan.\n- `novel_engine/github_bot.py`: bot GitHub Issue untuk AI API.
+- `novel_engine/cli.py`: antarmuka perintah dan menu interaktif.
+- `novel_engine/agy.py`: adapter AGY opsional.
+- `novel_engine/github_bot.py`: bot GitHub Issue untuk AI API.
 - `tests/`: uji fungsi inti.
 - `docs/`: metodologi dan kontrak kerja manusia/AI.
 

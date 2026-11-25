@@ -3,6 +3,7 @@ import re
 import shutil
 import subprocess
 from .project import build_context, manuscript, state_update, read
+from .chapter_selection import parse_chapter_numbers as parse_numbers
 
 _PLACEHOLDER_MARKERS = frozenset({
     "todo", "tbd", "placeholder", "belum ditulis",
@@ -106,22 +107,6 @@ def run_one(story, number, rewrite=False):
         return "incomplete"
     print(f"Bab {number}: naskah dan State Update ditemukan.")
     return "success"
-
-
-def parse_numbers(raw, available):
-    chosen = set()
-    try:
-        for part in raw.replace(" ", "").split(","):
-            if "-" in part:
-                start, end = (int(x) for x in part.split("-", 1))
-                if start > end:
-                    return None
-                chosen.update(range(start, end + 1))
-            else:
-                chosen.add(int(part))
-    except (ValueError, TypeError):
-        return None
-    return sorted(chosen) if chosen and chosen.issubset(set(available)) else None
 
 
 def run_batch(story, raw, available, rewrite=False):

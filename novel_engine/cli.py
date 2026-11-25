@@ -1,7 +1,6 @@
 import argparse
 from .project import ROOT, resolve_story, chapter_numbers, blueprints, manuscript, state_update, build_context, build_memory, read
 from .audit import deterministic_audit, outline_audit_prompt
-from .agy import run_batch
 
 
 def status(story):
@@ -93,6 +92,7 @@ def interactive_menu(story):
         elif choice == "6":
             raw = input("Bab (contoh 4 atau 1-5,8): ").strip()
             rewrite = input("Izinkan rewrite bab yang sudah ada? (y/t): ").strip().lower() == "y"
+            from .agy import run_batch
             run_batch(story, raw, chapter_numbers(story), rewrite)
         elif choice == "0":
             return 0
@@ -162,6 +162,7 @@ def main(argv=None):
         if args.command == "verify":
             return verify(story, args.chapter)
         if args.command == "agy":
+            from .agy import run_batch
             return run_batch(story, args.chapters, chapter_numbers(story), args.rewrite)
     except (ValueError, FileExistsError) as exc:
         parser.error(str(exc))
