@@ -1,4 +1,5 @@
 import argparse
+import sys
 from .project import ROOT, resolve_story, chapter_numbers, blueprints, manuscript, state_update, build_context, build_memory, read
 from .audit import deterministic_audit, outline_audit_prompt
 
@@ -33,7 +34,6 @@ def verify(story, number):
         return 1
     print(f"File Bab {number} lengkap secara struktural. Ini bukan penilaian kualitas naratif.")
     return 0
-
 
 
 def interactive_menu(story):
@@ -99,8 +99,35 @@ def interactive_menu(story):
         else:
             print("Pilihan tidak dikenal.")
 
+
+def _extract_agent_argv(raw_argv):
+    """If raw_argv invokes the `agent` subcommand, return forwarded argv for novel_engine.agent."""
+    prefix = []
+    i = 0
+    while i < len(raw_argv):
+        tok = raw_argv[i]
+        if tok == "--story" and i + 1 < len(raw_argv):
+            prefix.extend([tok, raw_argv[i + 1]])
+            i += 2
+            continue
+        if tok.startswith("--story="):
+            prefix.append(tok)
+            i += 1
+            continue
+        if tok == "agent":
+            return prefix + raw_argv[i + 1:]
+        return None
+    return None
+
+
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Novel Engine — memory, context, outline audit, and verification.")
+    raw_argv = list(sys.argv[1:] if argv is None else argv)
+    agent_argv = _extract_agent_argv(raw_argv)
+    if agent_argv is not None:
+        from .agent import main as agent_main
+        return agent_main(agent_argv)
+
+    parser = argparse.ArgumentParser(description="Novel Engine – memory, context, outline audit, and verification.")
     parser.add_argument("--story", help="Slug folder proyek di stories/")
     sub = parser.add_subparsers(dest="command")
     sub.add_parser("status", help="Status naskah, blueprint, dan State Update")
@@ -116,7 +143,8 @@ def main(argv=None):
     p = sub.add_parser("agy", help="Jalankan AGY satu bab atau batch berurutan")
     p.add_argument("chapters", help="Nomor, rentang, atau daftar, misalnya 4 atau 1-5,8")
     p.add_argument("--rewrite", action="store_true")
-    args = parser.parse_args(argv)
+    sub.add_parser("agent", help="Antarmuka JSON berversi untuk AI agent (status, context, character, timeline, search, validate)")
+    args = parser.parse_args(raw_argv)
     try:
         if args.command is None and not args.story:
             choices = sorted(p for p in (ROOT / "stories").iterdir() if p.is_dir())
