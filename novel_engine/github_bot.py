@@ -8,7 +8,7 @@ from pathlib import Path
 from .project import ROOT, resolve_story, build_context, manuscript, state_update, read
 from .audit import outline_audit_prompt, deterministic_audit
 from .cli import verify
-from .agy import parse_numbers
+from .chapter_selection import parse_chapter_numbers as parse_numbers
 from .project import chapter_numbers
 
 
