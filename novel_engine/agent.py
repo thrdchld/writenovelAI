@@ -21,6 +21,7 @@ SCHEMA_VERSION = 1
 DEFAULT_SEARCH_LIMIT = 20
 MAX_SEARCH_LIMIT = 200
 OPERATIONS = ("status", "context", "character", "timeline", "search", "validate")
+SEARCH_SCOPES = ("all", "chronological", "global")
 
 _PLACEHOLDER_MARKERS = frozenset({
     "todo", "tbd", "placeholder", "belum ditulis",
@@ -30,6 +31,22 @@ _PLACEHOLDER_PREFIX_RE = re.compile(
     r"^(?:todo|tbd|placeholder|belum ditulis|isi di sini)\s*(?:[:\-]|$)",
     re.I,
 )
+_CHAPTER_RANGE_RE = re.compile(r"chapter-(\d+)-to-(\d+)", re.I)
+
+_GLOBAL_CORE_CATEGORIES = {
+    "00-premise.md": "global_core",
+    "01-concept.md": "global_core",
+    "02-characters.md": "global_character_profile",
+    "03-world-and-rules.md": "global_core",
+    "04-story-outline.md": "global_outline",
+    "05-decision-log.md": "global_decision_log",
+}
+_CHAPTER_FOLDER_CATEGORIES = {
+    "manuscript": "chapter_manuscript",
+    "state-updates": "chapter_state_update",
+    "blueprint": "chapter_blueprint",
+    "continuity": "chapter_continuity",
+}
 
 
 class AgentError(Exception):
@@ -96,6 +113,119 @@ def _add_source(sources: list[str], path: Path) -> None:
         sources.append(rel)
 
 
+def _classify_story_document(path: Path, story_root: Path) -> dict[str, Any]:
+    """Deterministically classify a file in a story directory for temporal boundaries."""
+    rel_parts = path.resolve().relative_to(story_root.resolve()).parts
+    name = path.name
+
+    if len(rel_parts) == 1 and name in _GLOBAL_CORE_CATEGORIES:
+        return {
+            "doc_category": _GLOBAL_CORE_CATEGORIES[name],
+            "is_chapter_numbered": False,
+            "chapter": None,
+            "chapter_range": None,
+            "max_chapter": None,
+        }
+
+    if len(rel_parts) >= 2 and rel_parts[0] in _CHAPTER_FOLDER_CATEGORIES:
+        folder = rel_parts[0]
+        range_match = _CHAPTER_RANGE_RE.search(path.stem)
+        if range_match:
+            start_ch = int(range_match.group(1))
+            end_ch = int(range_match.group(2))
+            lo, hi = (start_ch, end_ch) if start_ch <= end_ch else (end_ch, start_ch)
+            return {
+                "doc_category": f"{_CHAPTER_FOLDER_CATEGORIES[folder]}_range",
+                "is_chapter_numbered": True,
+                "chapter": lo,
+                "chapter_range": [lo, hi],
+                "max_chapter": hi,
+            }
+        n = project.chapter_no(path)
+        if n is not None:
+            return {
+                "doc_category": _CHAPTER_FOLDER_CATEGORIES[folder],
+                "is_chapter_numbered": True,
+                "chapter": n,
+                "chapter_range": None,
+                "max_chapter": n,
+            }
+        if folder == "continuity":
+            return {
+                "doc_category": "unnumbered_continuity",
+                "is_chapter_numbered": False,
+                "chapter": None,
+                "chapter_range": None,
+                "max_chapter": None,
+            }
+
+    return {
+        "doc_category": "unnumbered_document",
+        "is_chapter_numbered": False,
+        "chapter": None,
+        "chapter_range": None,
+        "max_chapter": None,
+    }
+
+
+def classify_source_conflict(conflict_text: str, story: Path, chapter: int) -> dict[str, Any]:
+    """Deterministically classify a conflict string from project.detect_source_conflicts.
+
+    Severity rules (never guessed):
+    - ORPHAN_STATE_CONFLICT -> HIGH (blocking): State Update exists without a manuscript.
+    - PREVIOUS_STATE_UPDATE_MISSING -> HIGH (blocking): canonical continuity record from chapter N-1 is absent.
+    - BLUEPRINT_MISSING -> HIGH (blocking): chapter blueprint is absent.
+    - PREVIOUS_MANUSCRIPT_MISSING -> MEDIUM (non-blocking warning): direct prose of chapter N-1 is absent,
+      but canonical continuity may still be satisfied if State Update N-1 exists.
+    - SOURCE_CONFLICT_WARNING -> MEDIUM (non-blocking warning): fallback for unrecognized conflict messages.
+    """
+    low = conflict_text.lower()
+    if "orphan state" in low:
+        return {
+            "code": "ORPHAN_STATE_CONFLICT",
+            "severity": "HIGH",
+            "blocking": True,
+            "message": conflict_text,
+            "source": project.display_path(project.state_update(story, chapter)),
+            "rationale": "State Update ada tanpa naskah bab sehingga status bab tidak konsisten.",
+        }
+    if "state update bab" in low and "belum tersedia" in low:
+        return {
+            "code": "PREVIOUS_STATE_UPDATE_MISSING",
+            "severity": "HIGH",
+            "blocking": True,
+            "message": conflict_text,
+            "source": project.display_path(project.state_update(story, chapter - 1)) if chapter > 1 else None,
+            "rationale": "Rantai kontinuitas kanon dari bab sebelumnya belum terekam sehingga konsistensi bab ini belum dapat dijamin.",
+        }
+    if "naskah bab" in low and "belum tersedia" in low:
+        return {
+            "code": "PREVIOUS_MANUSCRIPT_MISSING",
+            "severity": "MEDIUM",
+            "blocking": False,
+            "message": conflict_text,
+            "source": project.display_path(project.manuscript(story, chapter - 1)) if chapter > 1 else None,
+            "rationale": "Peringatan kesinambungan prosa: naskah bab sebelumnya belum tersedia, tetapi tidak memblokir jika State Update bab sebelumnya dan berkas bab target lengkap.",
+        }
+    if "blueprint khusus bab" in low and "tidak ditemukan" in low:
+        return {
+            "code": "BLUEPRINT_MISSING",
+            "severity": "HIGH",
+            "blocking": True,
+            "message": conflict_text,
+            "source": project.display_path(story / "blueprint"),
+            "rationale": "Blueprint bab target wajib tersedia sebagai acuan adegan dan batas pengetahuan.",
+        }
+    return {
+        "code": "SOURCE_CONFLICT_WARNING",
+        "severity": "MEDIUM",
+        "blocking": False,
+        "message": conflict_text,
+        "source": None,
+        "rationale": "Peringatan konflik sumber yang perlu ditinjau.",
+    }
+
+
 def resolve_story_safe(slug: str | None = None) -> Path:
     """Resolve a story directory strictly confined within project.STORIES."""
     stories_root = project.STORIES.resolve()
@@ -138,8 +268,6 @@ def _validate_chapter_number(chapter: int) -> int:
     if not isinstance(chapter, int) or chapter < 1:
         raise AgentError("INVALID_ARGUMENTS", "Nomor bab harus berupa bilangan bulat >= 1.", exit_code=2)
     return chapter
-
-
 def _parse_characters_document(story: Path) -> tuple[list[dict[str, Any]], Path | None]:
     char_path = story / "02-characters.md"
     if not char_path.is_file() or not _is_within(char_path, story):
@@ -236,6 +364,72 @@ def _extract_state_update_timeline(path: Path, chapter: int) -> dict[str, Any]:
     }
 
 
+def _collect_continuity_items(
+    story: Path,
+    before_chapter: int | None,
+    sources: list[str],
+) -> list[dict[str, Any]]:
+    """Collect continuity files with explicit temporal-boundary verification metadata."""
+    items: list[dict[str, Any]] = []
+    cont_folder = story / "continuity"
+    if not cont_folder.is_dir():
+        return items
+
+    for p in sorted(cont_folder.glob("*.md")):
+        if not _is_within(p, story):
+            continue
+        content = project.read(p)
+        if not content:
+            continue
+        n = project.chapter_no(p)
+        if before_chapter is not None and n is not None and n >= before_chapter:
+            continue
+
+        if n is not None:
+            items.append({
+                "chapter": n,
+                "source": project.display_path(p),
+                "content": content,
+                "temporal_status": "verified_before_chapter" if before_chapter is not None else "chapter_numbered",
+                "temporal_boundary_verified": True,
+                "safe_as_prior_fact": True,
+                "warning": None,
+                "agent_guidance": (
+                    f"Berkas kontinuitas bernomor Bab {n} (< Bab {before_chapter}); dapat digunakan sebagai fakta sebelumnya."
+                    if before_chapter is not None
+                    else f"Berkas kontinuitas bernomor Bab {n}."
+                ),
+            })
+        else:
+            if before_chapter is not None:
+                warn = (
+                    f"Batas temporal berkas kontinuitas tanpa nomor bab belum dapat dipastikan. "
+                    f"Jangan perlakukan isinya secara otomatis sebagai fakta yang sudah diketahui sebelum Bab {before_chapter}; "
+                    f"verifikasi setiap entri terhadap State Update bab sebelumnya."
+                )
+            else:
+                warn = (
+                    "Batas temporal berkas kontinuitas tanpa nomor bab belum dapat dipastikan. "
+                    "Jangan mengasumsikan seluruh isinya aman atau sudah diketahui pada semua bab."
+                )
+            items.append({
+                "chapter": None,
+                "source": project.display_path(p),
+                "content": content,
+                "temporal_status": "unverified_temporal",
+                "temporal_boundary_verified": False,
+                "safe_as_prior_fact": False,
+                "warning": warn,
+                "agent_guidance": (
+                    "Batas temporal belum dapat dipastikan; jangan perlakukan isi berkas ini sebagai "
+                    "fakta yang otomatis sudah diketahui pada bab sebelumnya tanpa verifikasi terhadap State Update bernomor bab."
+                ),
+            })
+        _add_source(sources, p)
+
+    return items
+
+
 def op_status(story: Path) -> tuple[dict[str, Any], list[str]]:
     sources: list[str] = []
     core_files: dict[str, dict[str, Any]] = {}
@@ -314,8 +508,6 @@ def op_status(story: Path) -> tuple[dict[str, Any], list[str]]:
         },
     }
     return data, sources
-
-
 def op_context(story: Path, chapter: int, rewrite: bool = False) -> tuple[dict[str, Any], list[str]]:
     _validate_chapter_number(chapter)
     available = project.chapter_numbers(story)
@@ -395,32 +587,10 @@ def op_context(story: Path, chapter: int, rewrite: bool = False) -> tuple[dict[s
                     })
                     _add_source(sources, p)
 
-    continuity_notes: list[dict[str, Any]] = []
-    cont_folder = story / "continuity"
-    if cont_folder.is_dir():
-        for p in sorted(cont_folder.glob("*.md")):
-            if not _is_within(p, story):
-                continue
-            n = project.chapter_no(p)
-            content = project.read(p)
-            if not content:
-                continue
-            if n is not None and n < chapter:
-                continuity_notes.append({
-                    "chapter": n,
-                    "source": project.display_path(p),
-                    "content": content,
-                    "warning": None,
-                })
-                _add_source(sources, p)
-            elif n is None:
-                continuity_notes.append({
-                    "chapter": None,
-                    "source": project.display_path(p),
-                    "content": content,
-                    "warning": f"Berkas tanpa nomor bab — gunakan hanya fakta sebelum Bab {chapter}.",
-                })
-                _add_source(sources, p)
+    continuity_notes = _collect_continuity_items(story, before_chapter=chapter, sources=sources)
+    unverified_continuity_sources = [
+        item["source"] for item in continuity_notes if not item["temporal_boundary_verified"]
+    ]
 
     previous_manuscript = None
     if chapter > 1:
@@ -460,6 +630,13 @@ def op_context(story: Path, chapter: int, rewrite: bool = False) -> tuple[dict[s
                 else None
             ),
             "excludes_current_and_future_state_updates": True,
+            "has_unverified_continuity": bool(unverified_continuity_sources),
+            "unverified_continuity_sources": unverified_continuity_sources,
+            "continuity_policy": (
+                "Berkas kontinuitas tanpa nomor bab tetap disertakan dengan status unverified_temporal "
+                "(safe_as_prior_fact=false); jangan perlakukan isinya secara otomatis sebagai fakta "
+                "yang sudah diketahui pada bab sebelumnya."
+            ),
         },
         "conflicts": conflicts,
         "core_documents": core_docs,
@@ -576,8 +753,6 @@ def op_character(story: Path, name: str) -> tuple[dict[str, Any], list[str]]:
         "raw_profile": entry["raw_profile"],
     }
     return data, sources
-
-
 def op_timeline(story: Path, before_chapter: int | None = None) -> tuple[dict[str, Any], list[str]]:
     if before_chapter is not None:
         _validate_chapter_number(before_chapter)
@@ -601,34 +776,30 @@ def op_timeline(story: Path, before_chapter: int | None = None) -> tuple[dict[st
             entries.append(_extract_state_update_timeline(p, n))
             _add_source(sources, p)
 
-    continuity_records: list[dict[str, Any]] = []
-    cont_folder = story / "continuity"
-    if cont_folder.is_dir():
-        for p in sorted(cont_folder.glob("*.md")):
-            if not _is_within(p, story):
-                continue
-            content = project.read(p)
-            if not content:
-                continue
-            n = project.chapter_no(p)
-            if before_chapter is not None and n is not None and n >= before_chapter:
-                continue
-            warning = None
-            if before_chapter is not None and n is None:
-                warning = f"Berkas kontinuitas tanpa nomor bab — gunakan hanya kejadian sebelum Bab {before_chapter}."
-            continuity_records.append({
-                "chapter": n,
-                "source": project.display_path(p),
-                "content": content,
-                "warning": warning,
-            })
-            _add_source(sources, p)
+    continuity_records = _collect_continuity_items(story, before_chapter=before_chapter, sources=sources)
+    unverified_continuity_sources = [
+        item["source"] for item in continuity_records if not item["temporal_boundary_verified"]
+    ]
+
+    temporal_warning = None
+    if unverified_continuity_sources:
+        temporal_warning = (
+            "Terdapat berkas kontinuitas tanpa nomor bab yang batas temporalnya belum dapat dipastikan. "
+            "Jangan perlakukan isinya secara otomatis sebagai fakta yang sudah diketahui pada bab sebelumnya."
+        )
 
     data = {
         "before_chapter": before_chapter,
         "entries": entries,
         "continuity_records": continuity_records,
         "total_entries": len(entries),
+        "temporal_boundary": {
+            "before_chapter": before_chapter,
+            "entries_strictly_before_chapter": before_chapter is not None,
+            "has_unverified_continuity": bool(unverified_continuity_sources),
+            "unverified_continuity_sources": unverified_continuity_sources,
+            "warning": temporal_warning,
+        },
     }
     return data, sources
 
@@ -638,6 +809,7 @@ def op_search(
     query: str,
     limit: int = DEFAULT_SEARCH_LIMIT,
     before_chapter: int | None = None,
+    scope: str | None = None,
 ) -> tuple[dict[str, Any], list[str]]:
     cleaned = query.strip()
     if not cleaned:
@@ -651,11 +823,24 @@ def op_search(
     if before_chapter is not None:
         _validate_chapter_number(before_chapter)
 
+    if scope is None:
+        effective_scope = "chronological" if before_chapter is not None else "all"
+    else:
+        if scope not in SEARCH_SCOPES:
+            raise AgentError(
+                "INVALID_ARGUMENTS",
+                f"Nilai --scope tidak valid: {scope}. Pilihan: {', '.join(SEARCH_SCOPES)}.",
+                exit_code=2,
+            )
+        effective_scope = scope
+
     q_lower = cleaned.lower()
     story_root = story.resolve()
     matches: list[dict[str, Any]] = []
     sources: list[str] = []
     total_matches = 0
+    excluded_unbounded_files: list[str] = []
+    unbounded_match_count = 0
 
     for path in sorted(story_root.rglob("*")):
         if not path.is_file():
@@ -668,12 +853,32 @@ def op_search(
         if path.suffix.lower() not in (".md", ".txt"):
             continue
 
-        if before_chapter is not None and len(rel_parts) >= 2 and rel_parts[0] in (
-            "manuscript", "state-updates", "blueprint", "continuity"
-        ):
-            n = project.chapter_no(path)
-            if n is not None and n >= before_chapter:
+        doc_meta = _classify_story_document(path, story_root)
+        is_numbered = doc_meta["is_chapter_numbered"]
+
+        if effective_scope == "chronological":
+            if not is_numbered:
+                excluded_unbounded_files.append(project.display_path(path))
                 continue
+            if before_chapter is not None and doc_meta["max_chapter"] >= before_chapter:
+                continue
+        elif effective_scope == "global":
+            if is_numbered:
+                continue
+        else:  # scope == "all"
+            if is_numbered and before_chapter is not None and doc_meta["max_chapter"] >= before_chapter:
+                continue
+
+        if is_numbered:
+            if before_chapter is not None:
+                temporal_status = "verified_before_chapter"
+                may_contain_future = False
+            else:
+                temporal_status = "chapter_numbered"
+                may_contain_future = False
+        else:
+            temporal_status = "unverified_temporal"
+            may_contain_future = True
 
         try:
             text = path.read_text(encoding="utf-8")
@@ -684,28 +889,71 @@ def op_search(
         for lineno, line in enumerate(text.splitlines(), start=1):
             if q_lower in line.lower():
                 total_matches += 1
+                if may_contain_future:
+                    unbounded_match_count += 1
                 if len(matches) < limit:
                     matches.append({
                         "file": project.display_path(path),
                         "line": lineno,
                         "snippet": line.strip(),
+                        "doc_category": doc_meta["doc_category"],
+                        "chapter": doc_meta["chapter"],
+                        "chapter_range": doc_meta["chapter_range"],
+                        "temporal_status": temporal_status,
+                        "may_contain_future_info": may_contain_future,
                     })
                     file_matched = True
         if file_matched:
             _add_source(sources, path)
 
+    if effective_scope == "chronological" and before_chapter is not None:
+        all_temporally_bounded = True
+        temporal_guarantee = "strict_before_chapter"
+        temporal_warning = None
+    elif effective_scope == "chronological":
+        all_temporally_bounded = True
+        temporal_guarantee = "chapter_numbered_only"
+        temporal_warning = None
+    elif effective_scope == "global":
+        all_temporally_bounded = False
+        temporal_guarantee = "unbounded_global_only"
+        temporal_warning = (
+            "Pencarian mode global memindai dokumen tanpa nomor bab (outline, decision log, profil karakter, "
+            "dan berkas kontinuitas umum) yang dapat memuat informasi masa depan atau rahasia penulis."
+        )
+    else:  # scope == "all"
+        all_temporally_bounded = False
+        if before_chapter is not None:
+            temporal_guarantee = "partial_contains_unbounded_documents"
+            temporal_warning = (
+                f"Dokumen bab bernomor dibatasi sebelum Bab {before_chapter}, tetapi scope 'all' tetap memindai "
+                "dokumen global/tanpa nomor bab (outline, decision log, profil karakter, continuity umum) "
+                "yang tidak dijamin bebas informasi masa depan. Gunakan --scope chronological untuk batas temporal ketat."
+            )
+        else:
+            temporal_guarantee = "unbounded_all_documents"
+            temporal_warning = (
+                "Pencarian scope 'all' mencakup dokumen global/tanpa nomor bab yang dapat memuat "
+                "informasi masa depan atau rahasia penulis."
+            )
+
     data = {
         "query": cleaned,
+        "scope": effective_scope,
         "before_chapter": before_chapter,
         "limit": limit,
         "total_matches": total_matches,
         "returned_matches": len(matches),
         "truncated": total_matches > limit,
+        "all_results_temporally_bounded": all_temporally_bounded,
+        "temporal_guarantee": temporal_guarantee,
+        "temporal_warning": temporal_warning,
+        "unbounded_match_count": unbounded_match_count,
+        "excluded_unbounded_files_count": len(excluded_unbounded_files),
+        "excluded_unbounded_files": excluded_unbounded_files,
         "matches": matches,
     }
     return data, sources
-
-
 def op_validate(story: Path, chapter: int) -> tuple[dict[str, Any], list[str]]:
     _validate_chapter_number(chapter)
     available = project.chapter_numbers(story)
@@ -740,30 +988,38 @@ def op_validate(story: Path, chapter: int) -> tuple[dict[str, Any], list[str]]:
     findings: list[dict[str, Any]] = []
     seen_codes: set[tuple[str, str]] = set()
 
-    def _add_finding(severity: str, code: str, message: str, source: str | None = None) -> None:
+    def _add_finding(
+        severity: str,
+        code: str,
+        message: str,
+        source: str | None = None,
+        blocking: bool | None = None,
+    ) -> None:
         key = (code, message)
         if key in seen_codes:
             return
         seen_codes.add(key)
+        is_blocking = (severity in {"CRITICAL", "HIGH"}) if blocking is None else blocking
         findings.append({
             "severity": severity,
             "code": code,
             "message": message,
             "source": source,
+            "blocking": is_blocking,
         })
 
     if not ms_exists:
-        _add_finding("HIGH", "MANUSCRIPT_MISSING", f"Naskah Bab {chapter} tidak ada atau kosong.", project.display_path(ms_path))
+        _add_finding("HIGH", "MANUSCRIPT_MISSING", f"Naskah Bab {chapter} tidak ada atau kosong.", project.display_path(ms_path), blocking=True)
     elif not ms_meaningful:
-        _add_finding("HIGH", "MANUSCRIPT_PLACEHOLDER", f"Naskah Bab {chapter} hanya berisi heading atau placeholder.", project.display_path(ms_path))
+        _add_finding("HIGH", "MANUSCRIPT_PLACEHOLDER", f"Naskah Bab {chapter} hanya berisi heading atau placeholder.", project.display_path(ms_path), blocking=True)
 
     if not su_exists:
-        _add_finding("HIGH", "STATE_UPDATE_MISSING", f"State Update Bab {chapter} tidak ada atau kosong.", project.display_path(su_path))
+        _add_finding("HIGH", "STATE_UPDATE_MISSING", f"State Update Bab {chapter} tidak ada atau kosong.", project.display_path(su_path), blocking=True)
     elif not su_meaningful:
-        _add_finding("HIGH", "STATE_UPDATE_PLACEHOLDER", f"State Update Bab {chapter} hanya berisi heading atau placeholder.", project.display_path(su_path))
+        _add_finding("HIGH", "STATE_UPDATE_PLACEHOLDER", f"State Update Bab {chapter} hanya berisi heading atau placeholder.", project.display_path(su_path), blocking=True)
 
     if not bp_exists:
-        _add_finding("HIGH", "BLUEPRINT_MISSING", f"Blueprint Bab {chapter} tidak ditemukan.", project.display_path(story / "blueprint"))
+        _add_finding("HIGH", "BLUEPRINT_MISSING", f"Blueprint Bab {chapter} tidak ditemukan.", project.display_path(story / "blueprint"), blocking=True)
 
     chapter_marker = f"Bab {chapter}:"
     chapter_num_pat = re.compile(rf"\bBab\s+{chapter}\b")
@@ -771,37 +1027,86 @@ def op_validate(story: Path, chapter: int) -> tuple[dict[str, Any], list[str]]:
         if code == "OUTLINE_MISSING" or chapter_marker in detail or chapter_num_pat.search(detail):
             if code in ("BLUEPRINT_MISSING", "STATE_UPDATE_MISSING") and any(f["code"] == code for f in findings):
                 continue
-            _add_finding(severity, code, detail, project.display_path(outline_path) if outline_path.is_file() else None)
+            _add_finding(
+                severity,
+                code,
+                detail,
+                project.display_path(outline_path) if outline_path.is_file() else None,
+            )
 
     conflicts = project.detect_source_conflicts(story, chapter)
+    classified_conflicts = [classify_source_conflict(c, story, chapter) for c in conflicts]
+    for cc in classified_conflicts:
+        if cc["code"] == "BLUEPRINT_MISSING" and any(f["code"] == "BLUEPRINT_MISSING" for f in findings):
+            continue
+        _add_finding(
+            cc["severity"],
+            cc["code"],
+            cc["message"],
+            cc["source"],
+            blocking=cc["blocking"],
+        )
 
     by_severity: dict[str, int] = {}
+    blocking_findings: list[str] = []
+    warning_findings: list[str] = []
     for f in findings:
         sev = f["severity"]
         by_severity[sev] = by_severity.get(sev, 0) + 1
+        if f["blocking"]:
+            if f["code"] not in blocking_findings:
+                blocking_findings.append(f["code"])
+        else:
+            if f["code"] not in warning_findings:
+                warning_findings.append(f["code"])
 
-    blocking = {"CRITICAL", "HIGH"}
     is_valid = (
         ms_meaningful
         and su_meaningful
         and bp_exists
-        and not any(f["severity"] in blocking for f in findings)
+        and len(blocking_findings) == 0
     )
+
+    if not is_valid:
+        validation_status = "invalid"
+        status_reason = (
+            f"Validasi Bab {chapter} gagal karena ditemukan temuan/konflik pemblokir: "
+            f"{', '.join(blocking_findings)}."
+        )
+    elif warning_findings:
+        validation_status = "valid_with_warnings"
+        status_reason = (
+            f"Validasi Bab {chapter} lulus tanpa konflik pemblokir, namun terdapat peringatan: "
+            f"{', '.join(warning_findings)}."
+        )
+    else:
+        validation_status = "valid"
+        status_reason = (
+            f"Validasi Bab {chapter} lulus: naskah, State Update, blueprint, dan rantai kontinuitas lengkap tanpa temuan."
+        )
 
     data = {
         "chapter": chapter,
         "valid": is_valid,
+        "validation_status": validation_status,
+        "status_reason": status_reason,
         "checks": {
             "manuscript_exists": ms_exists,
             "manuscript_meaningful": ms_meaningful,
             "state_update_exists": su_exists,
             "state_update_meaningful": su_meaningful,
             "blueprint_exists": bp_exists,
+            "no_blocking_conflicts": not any(cc["blocking"] for cc in classified_conflicts),
         },
+        "blocking_findings": blocking_findings,
+        "warning_findings": warning_findings,
         "findings": findings,
         "conflicts": conflicts,
+        "classified_conflicts": classified_conflicts,
         "summary": {
             "total_findings": len(findings),
+            "blocking_count": len(blocking_findings),
+            "warning_count": len(warning_findings),
             "by_severity": by_severity,
         },
     }
@@ -857,7 +1162,13 @@ def _build_parser() -> _JsonArgumentParser:
     p_search = sub.add_parser("search", parents=[common], help="Pencarian kata/frasa terbatas pada folder cerita")
     p_search.add_argument("query", help="Kata atau frasa yang dicari")
     p_search.add_argument("--limit", type=int, default=DEFAULT_SEARCH_LIMIT, help="Batas maksimum hasil")
-    p_search.add_argument("--before", type=int, default=None, help="Batas bab eksklusif untuk mencegah bocornya data masa depan")
+    p_search.add_argument("--before", type=int, default=None, help="Batas bab eksklusif untuk dokumen bernomor bab")
+    p_search.add_argument(
+        "--scope",
+        default=None,
+        choices=SEARCH_SCOPES,
+        help="Cakupan pencarian: chronological (hanya dokumen bernomor bab), global (dokumen global/tanpa nomor bab), atau all",
+    )
 
     p_val = sub.add_parser("validate", parents=[common], help="Validasi terstruktur manuskrip dan State Update bab")
     p_val.add_argument("chapter", type=int, help="Nomor bab (>= 1)")
@@ -907,7 +1218,13 @@ def execute(argv: list[str]) -> tuple[dict[str, Any], int]:
         elif operation == "timeline":
             data, sources = op_timeline(story, before_chapter=args.before)
         elif operation == "search":
-            data, sources = op_search(story, args.query, limit=args.limit, before_chapter=args.before)
+            data, sources = op_search(
+                story,
+                args.query,
+                limit=args.limit,
+                before_chapter=args.before,
+                scope=args.scope,
+            )
         elif operation == "validate":
             data, sources = op_validate(story, args.chapter)
         else:
@@ -930,3 +1247,10 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
+
+
+
+
+
