@@ -163,6 +163,75 @@ class AgyRunnerTests(unittest.TestCase):
         self.assertEqual(rc, 1)
         self.assertEqual(mock_run_one.call_count, 1)
 
+    def test_placeholder_detection_cases(self):
+        """Deteksi placeholder menolak placeholder/heading/komentar kosong tapi menerima prosa dengan kata TODO."""
+        invalid_samples = [
+            "TODO",
+            "TODO: tulis bab",
+            "TBD",
+            "Belum ditulis",
+            "Isi di sini",
+            "# Bab 1\n\n## Adegan 1\n",
+            "<!-- TODO: tulis bab nanti -->",
+        ]
+        for sample in invalid_samples:
+            with self.subTest(sample=sample):
+                self.assertFalse(agy._is_meaningful_content(sample))
+
+        valid_with_todo = (
+            "# Bab 1\n\n"
+            "Di sudut meja tertempel catatan kecil bertuliskan TODO dari rapat kemarin. "
+            "Salma menggesernya pelan sebelum membuka peta."
+        )
+        self.assertTrue(agy._is_meaningful_content(valid_with_todo))
+
+    @patch("novel_engine.agy.shutil.which", return_value="/usr/bin/agy")
+    @patch("novel_engine.agy.subprocess.run")
+    def test_existing_both_placeholder_incomplete_and_no_agy(self, mock_run, _mock_which):
+        """Kedua file existing berisi placeholder: incomplete, AGY tidak dipanggil, tidak ditimpa."""
+        manuscript(self.story, 1).write_text("# Bab 1\n\nTODO: tulis bab\n", encoding="utf-8")
+        state_update(self.story, 1).write_text("# State\n\nBelum ditulis\n", encoding="utf-8")
+        self.assertEqual(agy.run_one(self.story, 1), "incomplete")
+        self.assertFalse(mock_run.called)
+        self.assertIn("TODO: tulis bab", manuscript(self.story, 1).read_text(encoding="utf-8"))
+
+    @patch("novel_engine.agy.shutil.which", return_value="/usr/bin/agy")
+    @patch("novel_engine.agy.subprocess.run")
+    def test_existing_valid_manuscript_placeholder_state_incomplete(self, mock_run, _mock_which):
+        """Naskah valid, State Update placeholder: incomplete, AGY tidak dipanggil."""
+        manuscript(self.story, 1).write_text("# Bab 1\n\nProsa lengkap bab pertama.", encoding="utf-8")
+        state_update(self.story, 1).write_text("TBD", encoding="utf-8")
+        self.assertEqual(agy.run_one(self.story, 1), "incomplete")
+        self.assertFalse(mock_run.called)
+
+    @patch("novel_engine.agy.shutil.which", return_value="/usr/bin/agy")
+    @patch("novel_engine.agy.subprocess.run")
+    def test_existing_placeholder_manuscript_valid_state_incomplete(self, mock_run, _mock_which):
+        """Naskah placeholder, State Update valid: incomplete, AGY tidak dipanggil."""
+        manuscript(self.story, 1).write_text("<!-- kosong -->", encoding="utf-8")
+        state_update(self.story, 1).write_text("# State\n\n- Rina datang pagi hari.", encoding="utf-8")
+        self.assertEqual(agy.run_one(self.story, 1), "incomplete")
+        self.assertFalse(mock_run.called)
+
+    @patch("novel_engine.agy.shutil.which", return_value="/usr/bin/agy")
+    @patch("novel_engine.agy.subprocess.run")
+    def test_existing_manuscript_without_state_incomplete(self, mock_run, _mock_which):
+        """Naskah ada, State Update tidak ada: incomplete, AGY tidak dipanggil."""
+        manuscript(self.story, 1).write_text("# Bab 1\n\nProsa lengkap bab pertama.", encoding="utf-8")
+        self.assertEqual(agy.run_one(self.story, 1), "incomplete")
+        self.assertFalse(mock_run.called)
+
+    @patch("novel_engine.agy.shutil.which", return_value="/usr/bin/agy")
+    @patch("novel_engine.agy.subprocess.run")
+    def test_batch_stops_on_incomplete_existing_files(self, mock_run, _mock_which):
+        """Batch berhenti jika menemukan file existing tidak lengkap dan tidak memanggil AGY."""
+        manuscript(self.story, 1).write_text("# Bab 1\n\nIsi di sini\n", encoding="utf-8")
+        state_update(self.story, 1).write_text("# State\n\n- Fakta valid.", encoding="utf-8")
+        rc = agy.run_batch(self.story, "1-2", [1, 2], rewrite=False)
+        self.assertEqual(rc, 1)
+        self.assertFalse(mock_run.called)
+        self.assertFalse(manuscript(self.story, 2).exists())
+
 
 if __name__ == "__main__":
     unittest.main()

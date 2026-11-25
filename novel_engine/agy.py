@@ -5,9 +5,21 @@ import subprocess
 from .project import build_context, manuscript, state_update, read
 
 _PLACEHOLDER_MARKERS = frozenset({
-    "todo", "tbd", "placeholder", "[placeholder]", "belum ditulis",
-    "isi di sini", "n/a", "...", "-", "kosong", "(kosong)",
+    "todo", "tbd", "placeholder", "belum ditulis",
+    "isi di sini", "n/a", "...", "-", "kosong",
 })
+_PLACEHOLDER_PREFIX_RE = re.compile(
+    r"^(?:todo|tbd|placeholder|belum ditulis|isi di sini)\s*(?:[:\-]|$)",
+    re.I,
+)
+
+
+def _is_placeholder_line(line):
+    s = re.sub(r"^(?:[-*>]\s*)+", "", line.strip())
+    s = s.strip("[]() ").lower()
+    if not s or s in _PLACEHOLDER_MARKERS:
+        return True
+    return bool(_PLACEHOLDER_PREFIX_RE.match(s))
 
 
 def _is_meaningful_content(text):
@@ -23,15 +35,14 @@ def _is_meaningful_content(text):
         body_lines.append(s)
     if not body_lines:
         return False
-    body = " ".join(body_lines).strip().lower()
-    return body not in _PLACEHOLDER_MARKERS
+    return any(not _is_placeholder_line(line) for line in body_lines)
 
 
 def run_one(story, number, rewrite=False):
     target = manuscript(story, number)
     state = state_update(story, number)
     if not rewrite and target.exists():
-        if read(target) and read(state):
+        if _is_meaningful_content(read(target)) and _is_meaningful_content(read(state)):
             print(f"Bab {number}: dilewati, naskah dan State Update sudah ada.")
             return "skipped"
         print(f"Bab {number}: file parsial terdeteksi. Perbaiki naskah/State Update sebelum melanjutkan.")
