@@ -1,7 +1,30 @@
 import json
+import re
 import shutil
 import subprocess
 from .project import build_context, manuscript, state_update, read
+
+_PLACEHOLDER_MARKERS = frozenset({
+    "todo", "tbd", "placeholder", "[placeholder]", "belum ditulis",
+    "isi di sini", "n/a", "...", "-", "kosong", "(kosong)",
+})
+
+
+def _is_meaningful_content(text):
+    """Return True if text has non-empty, non-placeholder body content."""
+    if not text or not text.strip():
+        return False
+    cleaned = re.sub(r"<!--.*?-->", "", text, flags=re.S)
+    body_lines = []
+    for line in cleaned.splitlines():
+        s = line.strip()
+        if not s or s.startswith("#") or re.fullmatch(r"[-*_]{3,}", s):
+            continue
+        body_lines.append(s)
+    if not body_lines:
+        return False
+    body = " ".join(body_lines).strip().lower()
+    return body not in _PLACEHOLDER_MARKERS
 
 
 def run_one(story, number, rewrite=False):
@@ -19,11 +42,15 @@ def run_one(story, number, rewrite=False):
     target.parent.mkdir(parents=True, exist_ok=True)
     state.parent.mkdir(parents=True, exist_ok=True)
     before = target.stat() if target.exists() else None
+    before_state = state.stat() if state.exists() else None
+    story_root = story.resolve()
+    rel_target = target.resolve().relative_to(story_root)
+    rel_state = state.resolve().relative_to(story_root)
     prompt = build_context(story, number, rewrite)
     prompt += (
         "\n\n## Instruksi eksekusi AGY\n"
-        f"Tulis prosa lengkap Bab {number} dan simpan ke {target}. "
-        f"Buat State Update faktual dan simpan ke {state}. "
+        f"Tulis prosa lengkap Bab {number} dan simpan ke {rel_target}. "
+        f"Buat State Update faktual dan simpan ke {rel_state}. "
         "Jangan mengubah outline, blueprint, canon, atau bab lain. "
         "Jangan hanya menampilkan hasil di terminal. Setelah menulis, laporkan file yang benar-benar dibuat."
     )
@@ -32,8 +59,8 @@ def run_one(story, number, rewrite=False):
         print("AGY tidak ditemukan di PATH.")
         return "error"
     result = subprocess.run(
-        [executable, "-p", prompt, "--output-format", "json", "--dangerously-skip-permissions"],
-        cwd=str(story.parents[1]), capture_output=True, text=True,
+        [executable, "-p", prompt, "--mode", "accept-edits", "--output-format", "json"],
+        cwd=str(story_root), capture_output=True, text=True,
         encoding="utf-8", errors="replace"
     )
     combined = "\n".join((result.stdout, result.stderr)).lower()
@@ -44,21 +71,27 @@ def run_one(story, number, rewrite=False):
         return "error"
     try:
         payload = json.loads(result.stdout.strip())
-        if isinstance(payload, dict):
-            if str(payload.get("status", "")).upper() == "ERROR":
-                print(str(payload.get("error", payload))[-4000:])
-                return "error"
-            denied = payload.get("denied_actions", [])
-            if denied:
-                print(f"Bab {number}: AGY memiliki aksi yang ditolak: {denied}")
-                return "error"
     except (ValueError, TypeError):
-        pass
-    if not read(target) or not read(state):
+        print(f"Bab {number}: respons AGY bukan JSON valid.")
+        return "error"
+    if not isinstance(payload, dict):
+        print(f"Bab {number}: format respons AGY tidak valid.")
+        return "error"
+    if str(payload.get("status", "")).upper() != "SUCCESS":
+        print(str(payload.get("error", payload))[-4000:])
+        return "error"
+    denied = payload.get("denied_actions", [])
+    if denied:
+        print(f"Bab {number}: AGY memiliki aksi yang ditolak: {denied}")
+        return "error"
+    if not _is_meaningful_content(read(target)) or not _is_meaningful_content(read(state)):
         print(f"Bab {number}: AGY selesai tetapi naskah atau State Update belum lengkap.")
         return "incomplete"
     if rewrite and before and target.stat().st_mtime_ns == before.st_mtime_ns and target.stat().st_size == before.st_size:
-        print(f"Bab {number}: file tidak berubah; rewrite tidak dapat diverifikasi.")
+        print(f"Bab {number}: file naskah tidak berubah; rewrite tidak dapat diverifikasi.")
+        return "incomplete"
+    if rewrite and before_state and state.stat().st_mtime_ns == before_state.st_mtime_ns and state.stat().st_size == before_state.st_size:
+        print(f"Bab {number}: file State Update tidak berubah; rewrite tidak dapat diverifikasi.")
         return "incomplete"
     print(f"Bab {number}: naskah dan State Update ditemukan.")
     return "success"
