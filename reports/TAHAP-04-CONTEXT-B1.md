@@ -288,6 +288,10 @@ Tidak ada pembatalan proyek total, sertifikat instan, suap, konspirasi besar, at
 ### A. Karakter yang Hadir dalam Bab Ini:
 
 #### Salma
+- **Deskripsi Karakter (Belum Diklasifikasikan — Referensi Penulis):**
+  - Teknisi pemetaan kontrak di perusahaan konsultan infrastruktur. Teliti, cenderung percaya bahwa data yang rapi berarti data yang benar. Ia kembali ke Gang Kenari karena tugas lapangan, bukan karena ingin menyelidiki ayahnya. Ayahnya, Hadi, meninggal pada 2022. Salma mengingat Hadi sebagai orang yang tertib dan disegani, tetapi hubungan mereka tidak terlalu terbuka. Kelemahan: ketika fakta mengganggu gambaran yang ia pegang, ia menunda mengambil kesimpulan.
+> [!NOTE] Profil di atas adalah referensi watak untuk penulis; bukan fakta yang otomatis diketahui karakter lain.
+
 - **Fakta yang diketahui:**
   - *Adegan 1 — Peta final:* Salma tahu hasil surveinya
   - *Adegan 2 — Nama di kolom pemeriksa:* Salma tahu Hadi ayahnya
@@ -299,6 +303,10 @@ Tidak ada pembatalan proyek total, sertifikat instan, suap, konspirasi besar, at
   - *(Belum ditentukan dalam blueprint)*
 
 #### Dito
+- **Deskripsi Karakter (Belum Diklasifikasikan — Referensi Penulis):**
+  - Rekan Salma di tim survei. Bertanggung jawab pada pengukuran lapangan dan dokumentasi teknis. Berorientasi prosedur, tetapi tidak kaku. Ia mengingatkan Salma bahwa kesaksian dan foto harus dicatat sumber serta tanggalnya.
+> [!NOTE] Profil di atas adalah referensi watak untuk penulis; bukan fakta yang otomatis diketahui karakter lain.
+
 - **Fakta yang diketahui:**
   - *Adegan 1 — Peta final:* Dito tahu catatan lapangan
   - *Adegan 2 — Nama di kolom pemeriksa:* Dito baru tahu nama itu punya hubungan pribadi.
@@ -310,6 +318,7 @@ Tidak ada pembatalan proyek total, sertifikat instan, suap, konspirasi besar, at
   - *(Belum ditentukan dalam blueprint)*
 
 #### Koordinator proyek
+
 - **Fakta yang diketahui:**
   - *Adegan 1 — Peta final:* koordinator hanya tahu peta kerja awal.
 - **Fakta yang diduga:**

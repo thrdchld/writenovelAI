@@ -32,7 +32,7 @@ def run_one(story, number, rewrite=False):
         print("AGY tidak ditemukan di PATH.")
         return "error"
     result = subprocess.run(
-        [executable, "-p", prompt, "--output-format", "json"],
+        [executable, "-p", prompt, "--output-format", "json", "--dangerously-skip-permissions"],
         cwd=str(story.parents[1]), capture_output=True, text=True,
         encoding="utf-8", errors="replace"
     )
@@ -44,9 +44,14 @@ def run_one(story, number, rewrite=False):
         return "error"
     try:
         payload = json.loads(result.stdout.strip())
-        if isinstance(payload, dict) and str(payload.get("status", "")).upper() == "ERROR":
-            print(str(payload.get("error", payload))[-4000:])
-            return "error"
+        if isinstance(payload, dict):
+            if str(payload.get("status", "")).upper() == "ERROR":
+                print(str(payload.get("error", payload))[-4000:])
+                return "error"
+            denied = payload.get("denied_actions", [])
+            if denied:
+                print(f"Bab {number}: AGY memiliki aksi yang ditolak: {denied}")
+                return "error"
     except (ValueError, TypeError):
         pass
     if not read(target) or not read(state):

@@ -584,11 +584,16 @@ def extract_blueprint_boundaries(blueprint_text, story=None):
     # Determine non-present characters
     non_present_characters = [c for c in known_chars if c.lower() not in seen]
 
+    # Build separate present vs non-present profile dicts
+    present_profiles = {c: non_present_profiles[c] for c in deduped_present if c in non_present_profiles}
+    non_present_profiles_filtered = {c: v for c, v in non_present_profiles.items() if c.lower() not in seen}
+
     return {
         "scenes": scenes,
         "all_present_characters": deduped_present,
         "non_present_characters": non_present_characters,
-        "non_present_profiles": non_present_profiles,
+        "non_present_profiles": non_present_profiles_filtered,
+        "present_profiles": present_profiles,
         "character_knowledge": char_knowledge,
         "reader_knowledge": reader_knowledge,
         "withheld_from_reader": withheld_from_reader,
@@ -629,6 +634,7 @@ def build_context(story, number, rewrite=False):
     bp = blueprints(story).get(number, "")
     bp_bounds = extract_blueprint_boundaries(bp, story=story) if bp else {
         "scenes": [], "all_present_characters": [], "non_present_characters": [], "non_present_profiles": {},
+        "present_profiles": {},
         "character_knowledge": {}, "reader_knowledge": [], "withheld_from_reader": [],
         "caution_for_reader": [], "ambiguous_notes": []
     }
@@ -755,12 +761,42 @@ def build_context(story, number, rewrite=False):
         ""
     ])
     present_list = bp_bounds["all_present_characters"]
+    present_profiles = bp_bounds.get("present_profiles", {})
     if present_list:
         for c_name in present_list:
             c_data = bp_bounds["character_knowledge"].get(c_name, {
                 "diketahui": [], "diduga": [], "disalahpahami": [], "belum_diketahui": []
             })
             chunks.append(f"#### {c_name}")
+
+            # Profil karakter yang hadir (referensi watak untuk penulis)
+            if c_name in present_profiles:
+                prof_p = present_profiles[c_name]
+                public_p = prof_p.get("public_info", "")
+                unclassified_p = prof_p.get("unclassified_info", [])
+                char_sec_p = prof_p.get("secrets_info", [])
+                author_sec_p = prof_p.get("author_secrets", [])
+                needs_rev_p = prof_p.get("ambiguous_info", [])
+                if public_p:
+                    chunks.append(f"- **Profil & Watak (Referensi Penulis):** {public_p}")
+                if unclassified_p:
+                    chunks.append("- **Deskripsi Karakter (Belum Diklasifikasikan — Referensi Penulis):**")
+                    for u in unclassified_p:
+                        chunks.append(f"  - {u}")
+                if char_sec_p:
+                    chunks.append("- **Rahasia Pribadi (Eksplisit dari Profil):**")
+                    for s in char_sec_p:
+                        chunks.append(f"  - {s}")
+                if author_sec_p:
+                    chunks.append("- **Rahasia Khusus Penulis (Author-Only dari Profil):**")
+                    for a in author_sec_p:
+                        chunks.append(f"  - {a}")
+                if needs_rev_p:
+                    chunks.append("- **Informasi Ambigu (Perlu Pemeriksaan):**")
+                    for n in needs_rev_p:
+                        chunks.append(f"  - {n}")
+                chunks.append(f"> [!NOTE] Profil di atas adalah referensi watak untuk penulis; bukan fakta yang otomatis diketahui karakter lain.")
+            chunks.append("")
 
             # Diketahui
             chunks.append("- **Fakta yang diketahui:**")

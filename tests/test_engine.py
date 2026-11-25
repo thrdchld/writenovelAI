@@ -857,6 +857,49 @@ class EngineTests(unittest.TestCase):
         self.assertIn("Rekening Luar Negeri", author_ctx)
         self.assertIn("Akhir yang Dituju", author_ctx)
 
+    def test_5_01_present_character_profile_in_context(self):
+        """Tahap 5: Profil watak tokoh hadir harus tampil di Bagian 4.A konteks."""
+        # story_a fixture: Arya, Maya, Kepala Cabang hadir di Bab 1
+        # 02-characters.md sudah ada dari setup_story_a dan bab 1 blueprint menyebut mereka
+        ctx = build_context(self.story_a, 1)
+        sec4a = ctx[ctx.find("### A. Karakter yang Hadir"):ctx.find("### B. Karakter yang Tidak Hadir")]
+
+        # Profil Arya harus muncul di bagian A — nama dan deskripsi
+        self.assertIn("#### Arya Pratama", sec4a)
+        # Deskripsi Arya yang di 02-characters.md masuk ke unclassified (format lama)
+        self.assertIn("Detektif swasta spesialis audit forensik", sec4a)
+
+        # Profil Maya harus muncul di bagian A
+        self.assertIn("#### Maya Indah", sec4a)
+
+        # Profil tokoh tidak hadir TIDAK boleh muncul di bagian 4.A
+        self.assertNotIn("Budi Santoso", sec4a)
+        self.assertNotIn("Hendra Kusuma", sec4a)
+
+    def test_5_02_present_profile_not_leaked_as_other_character_knowledge(self):
+        """Tahap 5: Profil tokoh hadir bukan fakta yang diketahui semua tokoh lain."""
+        ctx = build_context(self.story_a, 1)
+        # Deskripsi internal Maya (akuntan forensik rekan Arya) muncul di profil Maya,
+        # bukan masuk ke seksi Fakta yang diketahui oleh Kepala Cabang
+        sec_arya = ctx[ctx.find("#### Arya Pratama"):ctx.find("#### Maya Indah")]
+        # Pastikan tidak ada teks "rekan kerja Arya" di seksi Arya (itu deskripsi Maya)
+        # Yang ada di seksi Arya adalah profilnya sendiri
+        self.assertNotIn("rekan kerja Arya", sec_arya.split("- **Fakta yang diketahui:**")[0] if "- **Fakta yang diketahui:**" in sec_arya else sec_arya)
+
+    def test_5_03_non_present_chars_not_in_section_4a(self):
+        """Tahap 5: Karakter tidak hadir tidak boleh muncul di Bagian 4.A."""
+        ctx = build_context(self.story_a, 1)
+        sec4a = ctx[ctx.find("### A. Karakter yang Hadir"):ctx.find("### B. Karakter yang Tidak Hadir")]
+        sec4b = ctx[ctx.find("### B. Karakter yang Tidak Hadir"):]
+
+        # Hendra dan Budi tidak hadir (tidak ada di blueprint Bab 1 story_a)
+        self.assertNotIn("#### Hendra Kusuma", sec4a)
+        self.assertNotIn("#### Budi Santoso", sec4a)
+
+        # Hendra dan Budi HARUS ada di Bagian 4.B
+        self.assertIn("Hendra Kusuma", sec4b)
+        self.assertIn("Budi Santoso", sec4b)
+
 
 if __name__ == "__main__":
     unittest.main()
