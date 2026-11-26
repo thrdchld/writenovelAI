@@ -315,18 +315,18 @@ def _extract_state_update_timeline(path: Path, chapter: int) -> dict[str, Any]:
             title = s[2:].strip()
             continue
         if recorded_time is None:
-            m = re.match(r"^(?:[-*]\s*)?(?:\*\*)?(?:waktu kronologis|waktu|tanggal):?(?:\*\*)?:?\s*(.+)$", s, re.I)
-            if m and ":" in s:
+            m = re.match(r"^(?:[-*]\s*)?(?:\*\*)?(?:waktu kronologis|waktu akhir|waktu|tanggal cerita)(?:\*\*)?\s*:\s*(?:\*\*)?\s*(.+)$", s, re.I)
+            if m:
                 recorded_time = m.group(1).strip().strip("*").strip()
                 continue
         if location is None:
-            m = re.match(r"^(?:[-*]\s*)?(?:\*\*)?lokasi:?(?:\*\*)?:?\s*(.+)$", s, re.I)
-            if m and ":" in s:
+            m = re.match(r"^(?:[-*]\s*)?(?:\*\*)?lokasi(?:\s+tokoh)?(?:\*\*)?\s*:\s*(?:\*\*)?\s*(.+)$", s, re.I)
+            if m:
                 location = m.group(1).strip().strip("*").strip()
                 continue
         if pov is None:
-            m = re.match(r"^(?:[-*]\s*)?(?:\*\*)?pov:?(?:\*\*)?:?\s*(.+)$", s, re.I)
-            if m and ":" in s:
+            m = re.match(r"^(?:[-*]\s*)?(?:\*\*)?pov(?:\*\*)?\s*:\s*(?:\*\*)?\s*(.+)$", s, re.I)
+            if m:
                 pov = m.group(1).strip().strip("*").strip()
                 continue
 
@@ -335,7 +335,7 @@ def _extract_state_update_timeline(path: Path, chapter: int) -> dict[str, Any]:
         s = line.strip()
         if re.match(r"^##\s+", s):
             heading = s.lstrip("#").strip().lower()
-            in_events = any(k in heading for k in ("peristiwa", "kejadian", "kronologi", "urutan"))
+            in_events = any(k in heading for k in ("peristiwa", "kejadian", "kronologi", "urutan", "fakta baru"))
             continue
         if in_events:
             if s.startswith("###"):
