@@ -35,7 +35,7 @@
 - Waktu akhir: Menjelang pukul 09.00, 18 Oktober 2026.
 - Lokasi Mira: Rumah Arman dan Mira.
 - Lokasi amplop: Tetap di kotak perkakas dalam lemari dapur.
-- Hubungan komunikasi: Mira dan Arman belum saling menghubungi lagi sejak pesan dini hari Bab 1; Mira telah membalas satu kali kepada nomor anonim.
+- Hubungan komunikasi: Sejak Arman meninggalkan rumah pada 18 Oktober dini hari, Mira dan Arman belum berkomunikasi lagi hingga menjelang pukul 09.00; Mira telah membalas satu kali kepada nomor anonim.
 - Pesan baru: "Dia sudah pergi?" → "Sudah." → "Jangan lakukan apa pun dulu."
 
 ## Perubahan cerita
