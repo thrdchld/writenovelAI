@@ -220,7 +220,25 @@ class AgentInterfaceTests(unittest.TestCase):
         self.assertEqual(entries[0]["chapter"], 1)
         self.assertEqual(entries[0]["recorded_time"], "17 Agustus 2026, 14.00-14.35")
         self.assertNotIn("FAKTA_MASA_DEPAN_BAB_2", json.dumps(payload, ensure_ascii=False))
-
+    def test_timeline_ignores_document_update_date_and_extracts_fakta_baru(self):
+        """Regression: Tanggal pembaruan tidak boleh dianggap waktu kronologis cerita; heading Fakta baru (KANON) diekstrak bersih."""
+        (self.story / "state-updates/chapter-001.md").write_text(
+            "# State Update — Bab 1\n\n"
+             "- **Status bab:** DRAFT\n"
+            "- **Tanggal pembaruan:** 23 November 2026\n\n"
+            "## Fakta baru (KANON)\n"
+            "- Pada 15 Oktober, Salma menemukan berkas lama.\n\n"
+            "## Story state\n"
+            "- Lokasi tokoh: Salma berada di rumah.\n",
+            encoding="utf-8",
+        )
+        rc, payload, _ = self._run_agent(["--story", "uji-agent", "timeline", "--before", "2"])
+        self.assertEqual(rc, 0)
+        entry = payload["data"]["entries"][0]
+        self.assertIsNone(entry["recorded_time"])
+        self.assertEqual(entry["location"], "Salma berada di rumah.")
+        self.assertEqual(entry["events"], ["Pada 15 Oktober, Salma menemukan berkas lama."])
+        
     def test_timeline_before_chapter_1_returns_empty_without_inventing(self):
         rc, payload, _ = self._run_agent(["--story", "uji-agent", "timeline", "--before", "1"])
         self.assertEqual(rc, 0)
