@@ -36,54 +36,42 @@ Pak Rendy melirik jam dinding, lalu melirik peta lagi. Ia menghela napas pelan. 
 
 "Tidak akan ada kejutan."
 
----
-
 Pak Rendy keluar lebih dulu, membawa map cetak dan ponselnya, menutup pintu dengan klik kecil yang terasa lebih keras dari yang seharusnya. Ruangan menjadi sepi mendadak—hanya suara proyektor yang masih menyala dan dengung lemah pendingin udara yang sudah lama perlu diservis.
 
 Dito tidak langsung berdiri. Ia membalik halaman buku catatannya, menulis sesuatu, kemudian berhenti. "Itu lebih baik dari yang aku bayangkan," katanya akhirnya.
 
 "Dia bisa saja minta kita tanda tangan dulu, lampiran belakangan."
 
-"Tapi dia tidak."
+"Tapi dia tidak." Dito melirik map Salma yang masih terbuka sebagian. "Kamu tidak mengeluarkan lembar yang dari kelurahan tadi."
 
-Salma tidak menjawab. Pandangannya sudah beralih ke meja, ke tumpukan lembar referensi yang ia bawa tadi—peta kerja, foto survei, dan satu lembar yang berbeda dari yang lain. Lembar itu lebih tua: kertasnya sedikit kekuningan di tepi, dilaminating tipis, dan merupakan salinan dari dokumen administrasi lingkungan yang dikeluarkan kantor kelurahan pada 2011. Ia mendapatkannya dari arsip awal yang dikirimkan tim proyek sebagai referensi sejarah kawasan.
+Salma tidak langsung menjawab. Di dalam mapnya, terselip di balik foto survei dan sketsa ukur, ada satu lembar salinan fotokopi dari arsip kelurahan tahun 2011 yang sejak pagi ia bawa sebagai pegangan cadangan—kalau-kalau Pak Rendy mempersoalkan mengapa peta dasar mencatat area itu sebagai bangunan penyimpanan sementara. Ia menarik lembar itu separuh keluar. Kertasnya sedikit kusam hasil salinan berkas lama, dengan tabel perubahan peta kawasan pascabanjir.
 
-Ia menatap kolom bawah lembar itu.
+Matanya berhenti di kolom bawah lembar itu, tempat yang sejak beberapa hari lalu tidak lagi membuatnya terkejut, tetapi tetap terasa berat setiap kali dibaca ulang.
 
 *Pemeriksa dan Pengantar Permohonan — Lingkungan Hidup Kelurahan.*
 
 Di bawah kolom itu ada tanda tangan. Dan di sebelahnya, tercetak rapi dalam huruf kapital: **HADI WIBOWO.**
 
-Salma tidak bergerak selama beberapa detik.
+"Pak Rendy tadi hanya perlu bukti fisik lapangan," kata Salma pelan. "Kalau aku langsung membuka soal berkas 2011 sebelum verifikasi akses disepakati, rapatnya bisa melebar ke hal yang belum lengkap."
 
-Dito melihatnya. "Ada apa?"
+Dito melihat lembar itu sekilas. Pagi menjelang siang tadi ia sudah melihat salinannya saat mereka memilah lampiran awal, hanya sebagai satu nama pengantar administrasi di antara berkas lama. "Tapi nanti tetap harus masuk konteks lampiran Kamis, kan?"
 
-"Ini dokumen 2011." Suaranya keluar lebih datar dari yang ia inginkan. "Lampiran peta pembaruan kawasan. Waktu saluran diperbaiki setelah banjir."
-
-Dito ikut melihat lembar itu. "Nama pengantar administrasi?"
-
-"Ya."
-
-"Kamu kenal?"
-
-Salma meletakkan lembar itu kembali di atas meja, menghadap ke bawah. Bukan karena ia ingin menyembunyikan sesuatu—tidak ada yang perlu disembunyikan dari Dito, bukan sekarang—tapi karena ia butuh satu detik untuk menyusun kalimat yang tidak berlebihan.
+Salma meletakkan lembar itu di atas meja, menghadap ke atas sejenak sebelum membaliknya perlahan. Bukan karena ia ingin menyembunyikan sesuatu—justru karena sebelum mereka menyusun laporan final untuk rapat klien hari Kamis, Dito berhak tahu apa yang sedang ia tahan sejak awal minggu.
 
 "Hadi Wibowo itu ayahku," katanya.
 
-Dito diam.
+Dito terdiam. Tangannya berhenti di tepi buku catatan.
 
-"Dia meninggal empat tahun lalu." Salma mengambil map catatannya, memasukkan lembar itu ke dalam, dan menutup map. "Aku perlu salinan arsip ini. Lengkap. Bukan hanya lampiran yang ada di paket referensi kita—arsip aslinya, kalau bisa dimintakan ke kelurahan."
+"Dia meninggal empat tahun lalu." Salma memasukkan kembali lembar salinan 2011 itu ke dalam map dan menutupnya rapi. "Aku sudah memeriksa arsip kelurahan dan berbicara dengan orang-orang yang ingat 2011, tapi tidak ada catatan resmi tentang tindak lanjutnya setelah status sementara itu dibuat. Sebelum kita menyerahkan berkas final hari Kamis, aku masih ingin memastikan apakah ayahku meninggalkan catatan pribadi di rumah."
 
-"Untuk lampiran verifikasi?"
+"Untuk lampiran evaluasi?"
 
-"Untuk memahami apa yang terjadi." Ia berdiri, merapikan kursinya. "Kalau ada yang tidak sesuai di dokumen 2011, saya perlu tahu sebelum menyerahkan laporan akhir. Bukan menuduh siapa pun. Tapi juga tidak menandatangani sesuatu yang belum saya periksa."
+"Kalau relevan dan bisa dipisahkan dari dokumen resmi, ya," jawab Salma sambil berdiri dan merapikan kursinya. "Aku tidak ingin menutupi kesalahan siapa pun, termasuk ayahku. Tapi aku juga tidak mau menyerahkan laporan dengan kesimpulan yang belum punya dasar."
 
-Dito mengangguk pelan. Tidak ada pertanyaan lagi, tidak ada komentar tentang nama di kolom itu. Salma menghargai itu.
+Dito menatapnya sejenak, lalu mengangguk pelan. "Kalau begitu kita pisahkan catatan lapangan dan berkas arsip sejak sore ini. Biar tidak ada yang bisa bilang laporan kita berat sebelah."
 
-Ia keluar dari ruangan dengan map di bawah lengannya dan satu pertanyaan yang belum punya jawaban: dokumen itu mencatat ayahnya mengesahkan perubahan pada 2011, tapi tidak menjelaskan mengapa.
+Salma mengangguk. Ia menghargai bahwa Dito tidak melontarkan simpati yang tidak perlu.
 
-Di sepanjang koridor menuju tangga, ia mengingat hal-hal kecil. Ayahnya yang selalu tertib. Ayahnya yang tidak suka bicara banyak tentang pekerjaan lamanya. Ayahnya yang—setahu Salma—selalu mengerjakan sesuatu karena ada alasan yang masuk akal.
+Ia keluar dari ruangan dengan map di bawah lengannya, membawa tenggat Kamis pagi dan satu celah yang masih menganga sejak ia mulai menelusuri arsip: dokumen 2011 menjelaskan bagaimana nama ayahnya masuk ke lembar perubahan peta, tetapi belum menjawab apa yang sebenarnya terjadi setelah janji perbaikan itu tidak pernah tercatat kembali.
 
-Alasan apa pun yang masuk akal untuk dokumen itu, ia tidak tahu.
-
-Belum.
+Di sepanjang koridor menuju tangga, ia mengingat hal-hal kecil. Ayahnya yang selalu tertib. Ayahnya yang tidak suka bicara banyak tentang pekerjaan lamanya. Ayahnya yang—setahu Salma—selalu mengerjakan sesuatu karena ada alasan yang ia anggap masuk akal, bahkan ketika akibatnya bertahan jauh lebih lama daripada niat awalnya.
