@@ -55,7 +55,7 @@ Seluruh operasi antarmuka agent mengikuti aturan ketat:
 
 | Kode Error | Exit Code | Arti |
 | --- | --- | --- |
-| `INVALID_ARGUMENTS` | `2` | Argumen CLI tidak valid, operasi tidak dikenal, nomor bab `< 1`, atau nilai `--limit` di luar batas (`1..200`). |
+| `INVALID_ARGUMENTS` | `2` | Argumen CLI tidak valid, operasi tidak dikenal, nomor bab `< 1`, `--scope` tidak valid, atau nilai `--limit` di luar batas (`1..200`). |
 | `STORY_NOT_FOUND` | `1` | Folder cerita tidak ditemukan di `stories/`. |
 | `STORY_AMBIGUOUS` | `1` | Terdapat lebih dari satu proyek di `stories/` dan `--story` belum ditentukan. |
 | `PATH_OUT_OF_BOUNDS` | `1` | Slug cerita mencoba keluar dari direktori `stories/` (misalnya `../`). |
@@ -72,58 +72,11 @@ Seluruh operasi antarmuka agent mengikuti aturan ketat:
 python novel.py --story gang-yang-hilang-dari-peta agent status
 ```
 
-Contoh keluaran:
-
-```json
-{
-  "schema_version": 1,
-  "ok": true,
-  "operation": "status",
-  "story": "gang-yang-hilang-dari-peta",
-  "data": {
-    "story": "gang-yang-hilang-dari-peta",
-    "story_path": "stories/gang-yang-hilang-dari-peta",
-    "structure": {
-      "core_files": {
-        "00-premise.md": { "exists": true, "path": "stories/gang-yang-hilang-dari-peta/00-premise.md" }
-      },
-      "directories": {
-        "blueprint": true,
-        "manuscript": true,
-        "state-updates": true,
-        "continuity": false,
-        "audits": false
-      }
-    },
-    "chapters": [
-      {
-        "chapter": 1,
-        "in_outline": true,
-        "has_blueprint": true,
-        "has_manuscript": true,
-        "has_state_update": true,
-        "manuscript_path": "stories/gang-yang-hilang-dari-peta/manuscript/chapter-001.md",
-        "state_update_path": "stories/gang-yang-hilang-dari-peta/state-updates/chapter-001.md"
-      }
-    ],
-    "progress": {
-      "total_chapters": 1,
-      "manuscripts_written": 1,
-      "state_updates_written": 1,
-      "blueprints_available": 1,
-      "completed_chapters": 1,
-      "completion_ratio": 1.0
-    }
-  },
-  "sources": [
-    "stories/gang-yang-hilang-dari-peta/00-premise.md"
-  ]
-}
-```
+Mengembalikan struktur berkas inti, direktori cerita, daftar bab beserta kelengkapan (`in_outline`, `has_blueprint`, `has_manuscript`, `has_state_update`), dan ringkasan `progress`.
 
 ### 3.2 `context` — Paket Konteks Temporal untuk Bab Tertentu
 
-Memuat dokumen inti, blueprint bab target, pemisahan batas pengetahuan karakter/pembaca/penulis, naskah bab sebelumnya (`N-1`), serta hanya State Update dan kontinuitas dengan nomor bab `< N`. State Update bab `>= N` tidak pernah dimasukkan.
+Memuat dokumen inti, blueprint bab target, pemisahan batas pengetahuan karakter/pembaca/penulis, naskah bab sebelumnya (`N-1`), serta hanya State Update dan kontinuitas bernomor dengan nomor bab `< N`. State Update bab `>= N` tidak pernah dimasukkan.
 
 ```bash
 python novel.py --story gang-yang-hilang-dari-peta agent context 2
@@ -131,13 +84,10 @@ python novel.py --story gang-yang-hilang-dari-peta agent context 2
 python novel.py --story gang-yang-hilang-dari-peta agent context 2 --rewrite
 ```
 
-Field utama pada `data`:
-- `chapter`, `mode`, `target_manuscript`, `target_state_update`, `has_manuscript`, `has_state_update`, `has_blueprint`
-- `temporal_boundary`: menegaskan `excludes_current_and_future_state_updates: true`
-- `conflicts`: peringatan konflik sumber dari pemeriksa deterministik
-- `core_documents`, `blueprint`, `character_boundaries`, `canon_classification`
-- `previous_state_updates`, `continuity_notes`, `previous_manuscript`
-- `rendered_context`: paket konteks Markdown lengkap hasil `build_context`
+**Penanganan berkas `continuity/` tanpa nomor bab:**
+- Berkas kontinuitas bernomor bab (`chapter-NNN.md`, `NNN < N`) ditandai `temporal_status: "verified_before_chapter"`, `temporal_boundary_verified: true`, dan `safe_as_prior_fact: true`.
+- Berkas kontinuitas **tanpa nomor bab** tetap disertakan agar sumber tidak hilang, tetapi ditandai secara eksplisit dengan `temporal_status: "unverified_temporal"`, `temporal_boundary_verified: false`, `safe_as_prior_fact: false`, serta `warning` dan `agent_guidance`. AI tidak boleh memperlakukannya secara otomatis sebagai fakta yang sudah diketahui pada bab sebelumnya.
+- Ringkasan statusnya tersedia di `data.temporal_boundary.has_unverified_continuity` dan `data.temporal_boundary.unverified_continuity_sources`.
 
 ### 3.3 `character` — Profil Karakter & Pemisahan Pengetahuan
 
@@ -148,7 +98,7 @@ python novel.py --story gang-yang-hilang-dari-peta agent character "Salma"
 Field utama pada `data`:
 - `name`, `header`, `blueprint_appearances`, `raw_profile`
 - `character_known`: `public_profile` dan `character_secrets` (informasi publik & rahasia pribadi karakter)
-- `author_known`: `author_secrets` (`Rahasia Penulis` / `Author-Only`), `unclassified_profile_notes`, `needs_review`, serta `decision_log_mentions` yang sudah dipilah berdasarkan klasifikasi kerahasiaan.
+- `author_known`: `author_secrets` (`Rahasia Penulis` / `Author-Only`), `unclassified_profile_notes`, `needs_review`, serta `decision_log_mentions` yang dipilah berdasarkan klasifikasi kerahasiaan.
 
 ### 3.4 `timeline` — Kronologi Terekam Sebelum Bab Tertentu
 
@@ -158,40 +108,55 @@ Mengekstrak metadata waktu, lokasi, POV, dan peristiwa secara verbatim dari `sta
 python novel.py --story gang-yang-hilang-dari-peta agent timeline --before 3
 ```
 
-Jika `--before` tidak diisi, seluruh kronologi terekam akan dikembalikan. Jika sumber tidak mencantumkan waktu, `recorded_time` bernilai `null`.
+Jika `--before` tidak diisi, seluruh kronologi terekam akan dikembalikan. Jika sumber tidak mencantumkan waktu, `recorded_time` bernilai `null`. Berkas `continuity/` tanpa nomor bab tetap disertakan dengan status `temporal_status: "unverified_temporal"` dan `safe_as_prior_fact: false` (beserta ringkasan di `data.temporal_boundary`).
 
-### 3.5 `search` — Pencarian Terbatas di Folder Cerita
-
-```bash
-python novel.py --story gang-yang-hilang-dari-peta agent search "Gang Kenari" --limit 10 --before 3
-```
-
-Field utama pada `data`:
-- `query`, `before_chapter`, `limit`, `total_matches`, `returned_matches`, `truncated`
-- `matches`: daftar `{ "file", "line", "snippet" }` yang seluruhnya berada di dalam folder cerita (file di luar folder cerita dan folder `workbench/` tidak pernah dipindai).
-
-### 3.6 `validate` — Validasi Terstruktur Bab
-
-Memeriksa keberadaan dan keutuhan isi (bukan placeholder) pada manuskrip, State Update, blueprint, serta menggabungkan temuan deterministik (`deterministic_audit`) dan konflik sumber (`detect_source_conflicts`).
+### 3.5 `search` — Pencarian Terbatas & Terklasifikasi Temporal
 
 ```bash
-python novel.py --story gang-yang-hilang-dari-peta agent validate 1
+# Pencarian kronologis ketat sebelum Bab 3 (default --scope chronological saat --before dipakai):
+python novel.py --story gang-yang-hilang-dari-peta agent search "Gang Kenari" --before 3 --limit 10
+
+# Pencarian dokumen global (outline, decision log, profil karakter, continuity umum):
+python novel.py --story gang-yang-hilang-dari-peta agent search "brankas" --scope global --limit 10
+
+# Pencarian gabungan (dokumen bab < N + dokumen global dengan peringatan risiko masa depan):
+python novel.py --story gang-yang-hilang-dari-peta agent search "Gang Kenari" --before 3 --scope all
 ```
 
+Aturan `scope` dan batas temporal:
+- `--scope chronological` (default otomatis jika `--before N` dipakai): hanya memindai dokumen bernomor bab (`manuscript/`, `state-updates/`, `blueprint/`, `continuity/` bernomor) dengan batas eksklusif `max_chapter < N`. Dokumen global dan berkas tanpa nomor bab dikecualikan dan dicatat di `excluded_unbounded_files`. `all_results_temporally_bounded` bernilai `true`.
+- `--scope global`: memindai dokumen global/tanpa nomor bab (`global_outline`, `global_decision_log`, `global_character_profile`, `global_core`, `unnumbered_continuity`, `unnumbered_document`). Setiap hasil ditandai `temporal_status: "unverified_temporal"` dan `may_contain_future_info: true`, serta `all_results_temporally_bounded: false` dengan `temporal_warning`.
+- `--scope all` (default saat `--before` tidak dipakai): memindai keduanya; jika `--before N` turut diberikan, dokumen bernomor dibatasi `< N` sementara dokumen global/tanpa nomor bab tetap ditandai `may_contain_future_info: true` dan `temporal_guarantee: "partial_contains_unbounded_documents"`.
+
+### 3.6 `validate` — Validasi Terstruktur Bab & Klasifikasi Konflik Sumber
+
+Memeriksa keberadaan dan keutuhan isi (bukan placeholder) pada manuskrip, State Update, blueprint, serta menggabungkan temuan deterministik (`deterministic_audit`) dan klasifikasi konflik sumber (`detect_source_conflicts`).
+
+```bash
+python novel.py --story gang-yang-hilang-dari-peta agent validate 2
+```
+
+Aturan klasifikasi konflik deterministik:
+- **Pemblokir (`blocking: true`, membuat `valid: false` dan `validation_status: "invalid"`):**
+  - `MANUSCRIPT_MISSING`, `MANUSCRIPT_PLACEHOLDER`, `STATE_UPDATE_MISSING`, `STATE_UPDATE_PLACEHOLDER`
+  - `BLUEPRINT_MISSING`, `ORPHAN_STATE_CONFLICT`, `PREVIOUS_STATE_UPDATE_MISSING` (rantai kontinuitas kanon bab sebelumnya terputus)
+  - Temuan audit `CRITICAL` / `HIGH` (`OUTLINE_MISSING`, `DUPLICATE_OUTLINE_NUMBER`)
+- **Peringatan non-pemblokir (`blocking: false`, dapat tetap `valid: true` dengan `validation_status: "valid_with_warnings"`):**
+  - `PREVIOUS_MANUSCRIPT_MISSING` (naskah bab sebelumnya belum ada, tetapi State Update bab sebelumnya dan berkas bab target lengkap)
+  - Temuan audit `MEDIUM` / `LOW` (`ORPHAN_BLUEPRINT`, `CHAPTER_GAP`)
+
 Field utama pada `data`:
-- `chapter`, `valid` (`true`/`false`), `checks` (`manuscript_exists`, `manuscript_meaningful`, `state_update_exists`, `state_update_meaningful`, `blueprint_exists`)
-- `findings`: daftar objek `{ "severity", "code", "message", "source" }`
-- `conflicts`, `summary` (`total_findings`, `by_severity`)
+- `chapter`, `valid` (`true`/`false`), `validation_status` (`"valid"` | `"valid_with_warnings"` | `"invalid"`), `status_reason` (penjelasan alasan status)
+- `checks`, `blocking_findings`, `warning_findings`, `findings`, `conflicts`, `classified_conflicts`, `summary`
 
 ## 4. Pola Interaksi Bertahap bagi AI Agent
 
-Alih-alih memuat seluruh repository ke dalam satu prompt besar, AI agent disarankan bekerja dalam siklus permintaan terarah:
-
-1. **Cek peta proyek:** Jalankan `agent status` untuk mengetahui bab mana yang sudah ditulis, mana yang siap ditulis, dan dokumen inti apa saja yang tersedia.
-2. **Ambil konteks bab target:** Jalankan `agent context N` untuk memperoleh blueprint, batas pengetahuan karakter/pembaca, serta State Update sebelum Bab `N`.
+1. **Cek peta proyek:** Jalankan `agent status` untuk mengetahui bab mana yang sudah ditulis dan dokumen inti apa saja yang tersedia.
+2. **Ambil konteks bab target:** Jalankan `agent context N` untuk memperoleh blueprint, batas pengetahuan karakter/pembaca, serta State Update sebelum Bab `N`. Periksa `temporal_boundary.has_unverified_continuity` bila ada berkas kontinuitas tanpa nomor bab.
 3. **Minta detail tambahan saat berpikir:**
-   - Butuh memastikan rahasia tokoh tertentu tanpa membocorkan rahasia penulis? Panggil `agent character "<Nama>"`.
-   - Butuh mengecek urutan kejadian sebelum bab target? Panggil `agent timeline --before N`.
-   - Butuh melacak penyebutan istilah, benda, atau lokasi tertentu tanpa membaca bab masa depan? Panggil `agent search "<kata>" --before N --limit 15`.
+   - Profil dan batas rahasia tokoh: `agent character "<Nama>"`.
+   - Urutan kejadian terekam sebelum Bab `N`: `agent timeline --before N`.
+   - Pencarian fakta kronologis aman: `agent search "<kata>" --before N` (otomatis `--scope chronological`).
+   - Pencarian dokumen global (outline/decision log/karakter) bila memang diperlukan sebagai penulis: `agent search "<kata>" --scope global`.
 4. **Tulis naskah dan State Update** sesuai aturan cerita.
-5. **Validasi hasil:** Jalankan `agent validate N` untuk memastikan manuskrip, State Update, dan blueprint lengkap serta bebas placeholder sebelum melanjutkan ke Bab `N+1`.
+5. **Validasi hasil:** Jalankan `agent validate N` dan periksa `valid`, `validation_status`, `status_reason`, serta `blocking_findings` sebelum melanjutkan ke Bab `N+1`.
