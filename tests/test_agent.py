@@ -1,5 +1,5 @@
 """
-Tahap 9 — Pengujian unit untuk Python Agent Interface (novel_engine.agent).
+Tahap 9 & 9B — Pengujian unit untuk Python Agent Interface (novel_engine.agent).
 """
 
 import io
@@ -48,7 +48,9 @@ def _create_sample_story(stories_root: Path, slug: str = "uji-agent") -> Path:
         encoding="utf-8",
     )
     (story / "04-story-outline.md").write_text(
-        "| 1 | Garis Merah |\n| 2 | Ruang Arsip |\n| 3 | Gudang Lama |\n",
+        "| 1 | Garis Merah |\n"
+        "| 2 | Ruang Arsip |\n"
+        "| 3 | Gudang Lama — Pengungkapan Kunci Brankas |\n",
         encoding="utf-8",
     )
     (story / "05-decision-log.md").write_text(
@@ -56,7 +58,7 @@ def _create_sample_story(stories_root: Path, slug: str = "uji-agent") -> Path:
         "## D-001 — Dalang Perubahan Peta\n"
         "- **Status:** KANON\n"
         "- **Klasifikasi:** Rahasia Penulis\n"
-        "- **Keputusan:** Kepala dinas memerintahkan perubahan peta tanpa diketahui Salma.\n\n"
+        "- **Keputusan:** Kepala dinas memerintahkan perubahan peta tanpa diketahui Salma; bukti akhir ada di brankas 77.\n\n"
         "## D-002 — Salinan Peta Saku\n"
         "- **Status:** KANON\n"
         "- **Klasifikasi:** Rahasia Karakter\n"
@@ -233,11 +235,15 @@ class AgentInterfaceTests(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertTrue(payload["ok"])
         self.assertEqual(payload["operation"], "search")
+        self.assertEqual(payload["data"]["scope"], "all")
         self.assertEqual(payload["data"]["returned_matches"], 2)
         self.assertTrue(payload["data"]["truncated"])
         for m in payload["data"]["matches"]:
             self.assertIn("file", m)
             self.assertIn("line", m)
+            self.assertIn("doc_category", m)
+            self.assertIn("temporal_status", m)
+            self.assertIn("may_contain_future_info", m)
             self.assertIsInstance(m["line"], int)
             self.assertGreaterEqual(m["line"], 1)
             self.assertNotIn("outside_secret.md", m["file"])
@@ -248,8 +254,80 @@ class AgentInterfaceTests(unittest.TestCase):
         ])
         self.assertEqual(rc, 0)
         self.assertTrue(payload["ok"])
+        self.assertEqual(payload["data"]["scope"], "chronological")
+        self.assertTrue(payload["data"]["all_results_temporally_bounded"])
+        self.assertEqual(payload["data"]["temporal_guarantee"], "strict_before_chapter")
         self.assertEqual(payload["data"]["total_matches"], 0)
         self.assertEqual(payload["data"]["matches"], [])
+
+    def test_search_before_excludes_outline_and_decision_log_by_default_and_global_scope_warns(self):
+        """Pencarian --before N tidak memindai outline/decision log secara default; scope global/all memberi tanda risiko masa depan."""
+        rc_chron, pay_chron, _ = self._run_agent([
+            "--story", "uji-agent", "search", "brankas", "--before", "2"
+        ])
+        self.assertEqual(rc_chron, 0)
+        self.assertEqual(pay_chron["data"]["scope"], "chronological")
+        self.assertTrue(pay_chron["data"]["all_results_temporally_bounded"])
+        self.assertEqual(pay_chron["data"]["total_matches"], 0)
+        self.assertGreater(pay_chron["data"]["excluded_unbounded_files_count"], 0)
+
+        rc_glob, pay_glob, _ = self._run_agent([
+            "--story", "uji-agent", "search", "brankas", "--scope", "global"
+        ])
+        self.assertEqual(rc_glob, 0)
+        self.assertEqual(pay_glob["data"]["scope"], "global")
+        self.assertFalse(pay_glob["data"]["all_results_temporally_bounded"])
+        self.assertEqual(pay_glob["data"]["temporal_guarantee"], "unbounded_global_only")
+        self.assertIsNotNone(pay_glob["data"]["temporal_warning"])
+        self.assertGreaterEqual(pay_glob["data"]["total_matches"], 2)
+        categories = {m["doc_category"] for m in pay_glob["data"]["matches"]}
+        self.assertIn("global_outline", categories)
+        self.assertIn("global_decision_log", categories)
+        for m in pay_glob["data"]["matches"]:
+            self.assertEqual(m["temporal_status"], "unverified_temporal")
+            self.assertTrue(m["may_contain_future_info"])
+
+        rc_all, pay_all, _ = self._run_agent([
+            "--story", "uji-agent", "search", "brankas", "--before", "2", "--scope", "all"
+        ])
+        self.assertEqual(rc_all, 0)
+        self.assertEqual(pay_all["data"]["scope"], "all")
+        self.assertFalse(pay_all["data"]["all_results_temporally_bounded"])
+        self.assertEqual(pay_all["data"]["temporal_guarantee"], "partial_contains_unbounded_documents")
+        self.assertIsNotNone(pay_all["data"]["temporal_warning"])
+        self.assertGreater(pay_all["data"]["unbounded_match_count"], 0)
+
+    def test_search_unnumbered_documents_classified_and_excluded_in_chronological(self):
+        """Dokumen tanpa nomor bab (continuity umum / catatan umum) diklasifikasi jelas dan dikecualikan di scope chronological."""
+        (self.story / "continuity/timeline-umum.md").write_text(
+            "Kronologi umum memuat catatan rahasia_tanpa_bab_xyz di akhir cerita.\n",
+            encoding="utf-8",
+        )
+        (self.story / "catatan-umum.md").write_text(
+            "Catatan tambahan berisi rahasia_tanpa_bab_xyz.\n",
+            encoding="utf-8",
+        )
+
+        rc_chron, pay_chron, _ = self._run_agent([
+            "--story", "uji-agent", "search", "rahasia_tanpa_bab_xyz", "--before", "2"
+        ])
+        self.assertEqual(rc_chron, 0)
+        self.assertEqual(pay_chron["data"]["total_matches"], 0)
+        self.assertIn(
+            "stories/uji-agent/continuity/timeline-umum.md",
+            pay_chron["data"]["excluded_unbounded_files"],
+        )
+
+        rc_glob, pay_glob, _ = self._run_agent([
+            "--story", "uji-agent", "search", "rahasia_tanpa_bab_xyz", "--scope", "global"
+        ])
+        self.assertEqual(rc_glob, 0)
+        self.assertEqual(pay_glob["data"]["total_matches"], 2)
+        cats = {m["doc_category"] for m in pay_glob["data"]["matches"]}
+        self.assertEqual(cats, {"unnumbered_continuity", "unnumbered_document"})
+        for m in pay_glob["data"]["matches"]:
+            self.assertTrue(m["may_contain_future_info"])
+            self.assertEqual(m["temporal_status"], "unverified_temporal")
 
     def test_search_no_results(self):
         rc, payload, _ = self._run_agent(["--story", "uji-agent", "search", "kata_yang_tidak_ada_xyz"])
@@ -265,14 +343,99 @@ class AgentInterfaceTests(unittest.TestCase):
         self.assertTrue(payload1["ok"])
         self.assertEqual(payload1["operation"], "validate")
         self.assertTrue(payload1["data"]["valid"])
+        self.assertEqual(payload1["data"]["validation_status"], "valid")
+        self.assertIn("lulus", payload1["data"]["status_reason"].lower())
         self.assertEqual(payload1["data"]["findings"], [])
 
         rc2, payload2, _ = self._run_agent(["--story", "uji-agent", "validate", "2"])
         self.assertEqual(rc2, 0)
         self.assertTrue(payload2["ok"])
         self.assertFalse(payload2["data"]["valid"])
+        self.assertEqual(payload2["data"]["validation_status"], "invalid")
         codes = {f["code"] for f in payload2["data"]["findings"]}
         self.assertIn("MANUSCRIPT_MISSING", codes)
+        self.assertIn("ORPHAN_STATE_CONFLICT", codes)
+        self.assertIn("ORPHAN_STATE_CONFLICT", payload2["data"]["blocking_findings"])
+
+    def test_validate_blocking_source_conflict_fails_validation(self):
+        """Konflik sumber pemblokir (State Update Bab sebelumnya hilang) harus menggagalkan validasi Bab 2."""
+        (self.story / "manuscript/chapter-002.md").write_text(
+            "# Bab 2 — Ruang Arsip\n\nSalma memeriksa rak arsip bersama Dito.\n",
+            encoding="utf-8",
+        )
+        (self.story / "state-updates/chapter-001.md").unlink()
+
+        rc, payload, _ = self._run_agent(["--story", "uji-agent", "validate", "2"])
+        self.assertEqual(rc, 0)
+        self.assertTrue(payload["ok"])
+        data = payload["data"]
+        self.assertFalse(data["valid"])
+        self.assertEqual(data["validation_status"], "invalid")
+        self.assertFalse(data["checks"]["no_blocking_conflicts"])
+        self.assertIn("PREVIOUS_STATE_UPDATE_MISSING", data["blocking_findings"])
+        self.assertIn("PREVIOUS_STATE_UPDATE_MISSING", data["status_reason"])
+
+    def test_validate_warning_only_source_conflict_remains_valid_with_warning(self):
+        """Konflik peringatan saja (naskah Bab 1 belum ada, tetapi State Update Bab 1 & seluruh berkas Bab 2 lengkap) tetap valid dengan peringatan."""
+        (self.story / "manuscript/chapter-002.md").write_text(
+            "# Bab 2 — Ruang Arsip\n\nSalma memeriksa rak arsip bersama Dito.\n",
+            encoding="utf-8",
+        )
+        (self.story / "manuscript/chapter-001.md").unlink()
+
+        rc, payload, _ = self._run_agent(["--story", "uji-agent", "validate", "2"])
+        self.assertEqual(rc, 0)
+        self.assertTrue(payload["ok"])
+        data = payload["data"]
+        self.assertTrue(data["valid"])
+        self.assertEqual(data["validation_status"], "valid_with_warnings")
+        self.assertTrue(data["checks"]["no_blocking_conflicts"])
+        self.assertEqual(data["blocking_findings"], [])
+        self.assertIn("PREVIOUS_MANUSCRIPT_MISSING", data["warning_findings"])
+        self.assertIn("PREVIOUS_MANUSCRIPT_MISSING", data["status_reason"])
+
+    def test_unnumbered_continuity_flagged_in_context_and_timeline(self):
+        """Berkas continuity tanpa nomor bab tetap disertakan tetapi ditandai unverified_temporal dan safe_as_prior_fact=False."""
+        (self.story / "continuity/timeline-global.md").write_text(
+            "Catatan kontinuitas lintas bab yang memuat detail akhir cerita.\n",
+            encoding="utf-8",
+        )
+        (self.story / "continuity/chapter-001.md").write_text(
+            "Catatan kontinuitas khusus Bab 1.\n",
+            encoding="utf-8",
+        )
+
+        rc_ctx, pay_ctx, _ = self._run_agent(["--story", "uji-agent", "context", "2"])
+        self.assertEqual(rc_ctx, 0)
+        tb_ctx = pay_ctx["data"]["temporal_boundary"]
+        self.assertTrue(tb_ctx["has_unverified_continuity"])
+        self.assertIn("stories/uji-agent/continuity/timeline-global.md", tb_ctx["unverified_continuity_sources"])
+        notes_by_src = {item["source"]: item for item in pay_ctx["data"]["continuity_notes"]}
+        self.assertIn("stories/uji-agent/continuity/timeline-global.md", notes_by_src)
+        unnumbered = notes_by_src["stories/uji-agent/continuity/timeline-global.md"]
+        self.assertEqual(unnumbered["temporal_status"], "unverified_temporal")
+        self.assertFalse(unnumbered["temporal_boundary_verified"])
+        self.assertFalse(unnumbered["safe_as_prior_fact"])
+        self.assertIsNotNone(unnumbered["warning"])
+
+        numbered = notes_by_src["stories/uji-agent/continuity/chapter-001.md"]
+        self.assertEqual(numbered["temporal_status"], "verified_before_chapter")
+        self.assertTrue(numbered["temporal_boundary_verified"])
+        self.assertTrue(numbered["safe_as_prior_fact"])
+
+        rc_tl, pay_tl, _ = self._run_agent(["--story", "uji-agent", "timeline", "--before", "2"])
+        self.assertEqual(rc_tl, 0)
+        tb_tl = pay_tl["data"]["temporal_boundary"]
+        self.assertTrue(tb_tl["has_unverified_continuity"])
+        self.assertIn("stories/uji-agent/continuity/timeline-global.md", tb_tl["unverified_continuity_sources"])
+        self.assertIsNotNone(tb_tl["warning"])
+        rec_by_src = {item["source"]: item for item in pay_tl["data"]["continuity_records"]}
+        self.assertFalse(rec_by_src["stories/uji-agent/continuity/timeline-global.md"]["safe_as_prior_fact"])
+        self.assertEqual(
+            rec_by_src["stories/uji-agent/continuity/timeline-global.md"]["temporal_status"],
+            "unverified_temporal",
+        )
+        self.assertTrue(rec_by_src["stories/uji-agent/continuity/chapter-001.md"]["safe_as_prior_fact"])
 
     def test_story_not_found(self):
         rc, payload, _ = self._run_agent(["--story", "tidak-ada", "status"])
@@ -305,6 +468,7 @@ class AgentInterfaceTests(unittest.TestCase):
             ["--story", "uji-agent", "context", "abc"],
             ["--story", "uji-agent", "context", "0"],
             ["--story", "uji-agent", "search", "kata", "--limit", "0"],
+            ["--story", "uji-agent", "search", "kata", "--scope", "ngawur"],
             ["--story", "uji-agent", "timeline", "--before", "-1"],
         ):
             with self.subTest(argv=bad_argv):
