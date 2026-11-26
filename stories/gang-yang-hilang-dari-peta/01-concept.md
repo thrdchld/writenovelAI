@@ -4,9 +4,9 @@
 Misteri berpusat pada ketidaksesuaian antara peta resmi dan keadaan lapangan. Setiap sumber informasi memberi potongan berbeda: peta digital, sketsa ukur, buku administrasi, kuitansi, foto, dan kesaksian. Tidak satu pun langsung menyelesaikan persoalan.
 
 ## Struktur
-Cerita dibuka pada 17 Agustus 2026, ketika Salma menolak menandatangani peta final yang menyatakan area di balik tembok sebagai lahan kosong. Setelah itu cerita mundur ke 4 Agustus, saat ia pertama kali menerima tugas. Bab 2–18 bergerak maju sampai kembali ke hari rapat tersebut. Bab 19–30 melanjutkan akibat keputusan Salma.
+Cerita dibuka pada 17 Agustus 2026 pukul 14.00–14.35, ketika Salma menolak menandatangani peta final yang menyatakan area di balik tembok sebagai lahan kosong, lalu mengakui kepada Dito bahwa Hadi Wibowo yang tertera di lampiran 2011 adalah ayahnya. Setelah itu cerita mundur ke 4 Agustus, saat ia pertama kali menerima tugas. Bab 2–17 bergerak maju hingga 17 Agustus siang saat lampiran awal disiapkan untuk rapat. Bab 18 melanjutkan langsung **setelah** rapat pembuka selesai (17 Agustus sore) tanpa mengulang adegan rapat Bab 1, lalu Bab 19–30 bergerak maju memenuhi tenggat evaluasi klien Kamis 20 Agustus dan menuntaskan peninjauan akses secara realistis.
 
-Pembuka bukan adegan yang harus diulang utuh. Bab 19 melanjutkan dari sesudah penolakan di rapat.
+Pembuka tidak diulang pada Bab 18. Bab 18 membawa konsekuensi langsung dari penolakan Salma dan pengakuannya kepada Dito.
 
 ## Mekanisme misteri
 Pada 2011, setelah banjir dan pekerjaan darurat untuk membuka jalur air, tiga rumah di halaman belakang Gang Kenari tidak dimasukkan ke peta pembaruan. Hadi, sekretaris lingkungan saat itu, menandatangani lembar perubahan yang menyebut area tersebut sebagai bangunan penyimpanan sementara. Ia bermaksud menunda penggusuran saat warga belum punya tempat pindah, dengan janji bahwa data akan diperbaiki setelah keadaan stabil. Perbaikan itu tidak pernah dilakukan.
