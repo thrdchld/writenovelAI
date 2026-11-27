@@ -30,9 +30,9 @@
 
 ## Adegan 2 — Kesaksian yang berbeda
 - **Lokasi dan waktu:** 10 Agustus, 09.30–11.00
-- **Tokoh hadir:** Salma, warga lama bernama Bu Rukmini
+- **Tokoh hadir:** Salma, Bu Rukmini
 - **Tujuan adegan:** Memperlihatkan konflik ingatan yang wajar.
-- **Situasi awal:** Bu Rukmini mengingat satu keluarga tidak pernah benar-benar pindah.
+- **Situasi awal:** Bu Rukmini (warga lama di sekitar Gang Kenari) mengingat satu keluarga tidak pernah benar-benar pindah.
 - **Urutan kejadian:** Ia berbeda pendapat dengan Pak Bowo; ia mengenali Sari tetapi salah menyebut tahun; Salma tidak memaksa keduanya sepakat.
 - **Yang diketahui tokoh:** Bu Rukmini tahu pengalaman dari rumahnya; tidak tahu proses peta.
 - **Yang diketahui pembaca:** Pembaca melihat memori kolektif tidak seragam.
