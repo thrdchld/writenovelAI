@@ -33,12 +33,12 @@
 - **Tokoh hadir:** Salma, staf kelurahan
 - **Tujuan adegan:** Mengarahkan pencarian ke berkas tertentu.
 - **Situasi awal:** Staf menemukan indeks pembaruan peta dan satu lampiran yang belum dipindai.
-- **Urutan kejadian:** Nomor segmen cocok dengan lokasi; nama Hadi muncul sebagai pengantar lingkungan; staf menjanjikan salinan setelah pemeriksaan atasan.
-- **Yang diketahui tokoh:** Salma tahu Hadi mengantar berkas, belum tahu isi lampiran.
+- **Urutan kejadian:** Nomor segmen cocok dengan lokasi; pada indeks berkas 2011, nama Hadi Wibowo tercatat pada kolom *Pemeriksa dan Pengantar Permohonan — Lingkungan Hidup Kelurahan* sebagai pengantar lingkungan; staf menjanjikan salinan setelah pemeriksaan atasan.
+- **Yang diketahui tokoh:** Salma tahu Hadi tercatat sebagai pengantar berkas, belum tahu isi lampiran.
 - **Yang diketahui pembaca:** Pembaca melihat ayahnya masuk jalur administrasi.
 - **Informasi yang ditahan:** Apa yang ia tanda tangani.
 - **Perubahan setelah adegan:** Salma menunggu salinan resmi.
-- **Detail wajib:** Indeks berkas 2011.
+- **Detail wajib:** Indeks berkas 2011, kolom *Pemeriksa dan Pengantar Permohonan — Lingkungan Hidup Kelurahan*.
 - **Ruang pengembangan prosa:** Jangan langsung menyimpulkan Hadi yang membuat perubahan.
 
 ## Penutup bab
