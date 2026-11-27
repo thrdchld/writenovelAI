@@ -30,9 +30,9 @@
 
 ## Adegan 2 — Nama Niken
 - **Lokasi dan waktu:** 13 Agustus, 10.30–12.00
-- **Tokoh hadir:** Salma, Niken melalui telepon
+- **Tokoh hadir:** Salma, Niken
 - **Tujuan adegan:** Mendapat saksi administrasi yang terbatas.
-- **Situasi awal:** Staf memberi nomor Niken setelah mendapat persetujuannya.
+- **Situasi awal:** Staf memberi nomor Niken setelah mendapat persetujuannya; Salma menghubungi Niken melalui telepon.
 - **Urutan kejadian:** Niken bersedia bertemu; ia mengingat berkas banjir, tetapi memperingatkan ingatannya tidak lengkap; ia menyimpan beberapa catatan pribadi yang bukan arsip resmi.
 - **Yang diketahui tokoh:** Niken tahu format dan sebagian proses; belum tahu semua fakta lapangan.
 - **Yang diketahui pembaca:** Pembaca tahu ada sumber tambahan, bukan solusi tunggal.
