@@ -13,7 +13,7 @@
 - **Tujuan tokoh POV:** Menguji apakah desain benar-benar menutup akses rumah.
 - **Konflik/tekanan/pertanyaan:** Memperlihatkan konsekuensi desain dan batas kemampuan tim.
 - **Hubungan dengan bab sebelumnya:** Pengukuran menunjukkan dinding rencana melintasi mulut lorong.
-- **Jembatan menuju bab berikutnya:** Bab 15 membuat konflik warga dengan proyek menjadi langsung.
+- **Jembatan menuju bab berikutnya:** Salma memutuskan menemui Yuni sore harinya (16 Agustus, 16.00) dengan membawa sketsa dampak dinding penahan terhadap lorong akses (Bab 15).
 
 ## Adegan 1 — Patok rencana
 - **Lokasi dan waktu:** 16 Agustus, 09.00
@@ -45,7 +45,7 @@
 - **Keadaan tokoh setelah bab:** Salma memiliki satu informasi, keputusan, atau konsekuensi baru yang mengubah langkah berikutnya.
 - **Perubahan konflik/hubungan:** Memperlihatkan konsekuensi desain dan batas kemampuan tim.
 - **Fakta baru yang menjadi kanon:** Mengikuti detail wajib dan perubahan adegan di atas; dugaan tidak boleh dinaikkan menjadi fakta.
-- **Pertanyaan/ketegangan yang dibawa ke depan:** Bab 15 membuat konflik warga dengan proyek menjadi langsung.
+- **Pertanyaan/ketegangan yang dibawa ke depan:** Salma memutuskan menemui Yuni sore harinya (16 Agustus, 16.00) dengan membawa sketsa dampak dinding penahan terhadap lorong akses (Bab 15).
 - **Hal yang tidak boleh disimpulkan pembaca:** Temuan pemetaan tidak sama dengan kepemilikan tanah; kesaksian dan dokumen memiliki batas pembuktian.
 
 ## Batasan
