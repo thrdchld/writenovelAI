@@ -17,7 +17,7 @@
 
 ## Adegan 1 — Urutan penghuni
 - **Lokasi dan waktu:** 15 Agustus, 08.00
-- **Tokoh hadir:** Salma, Sari
+- **Tokoh hadir:** Salma, Sari, Dimas
 - **Tujuan adegan:** Memeriksa kesinambungan penghuni.
 - **Situasi awal:** Salma datang dengan daftar tanggal yang belum pasti.
 - **Urutan kejadian:** Sari menjelaskan kapan keluarganya kembali setelah banjir; ia mengingat rumah sempat dipakai menyimpan mesin jahit; ia tidak bisa memastikan bulan; Dimas mengoreksi satu tahun berdasarkan usia sekolahnya.
@@ -34,9 +34,9 @@
 - **Tujuan adegan:** Menguatkan keberadaan hunian dengan bukti fisik.
 - **Situasi awal:** Dimas menunjukkan jalur kabel dan bekas meter lama.
 - **Urutan kejadian:** Salma memotret sambungan yang masih terlihat; Dimas menunjukkan lokasi meter yang pernah dipakai; ia tidak tahu dokumen pemasangannya tersimpan atau tidak.
-- **Yang diketahui tokoh:** Dimas tahu kondisi fisik; Salma tahu ini perlu dicocokkan dengan arsip utilitas.
+- **Yang diketahui tokoh:** Dimas tahu kondisi fisik; Salma sudah mengetahui nama Rudianto pada kuitansi listrik rumah Sari (2012–2018) dari Bab 6, tetapi tahu nomor meter lama ini tetap perlu dicocokkan dengan arsip utilitas.
 - **Yang diketahui pembaca:** Pembaca mendapat petunjuk bukti tambahan.
-- **Informasi yang ditahan:** Siapa nama pelanggan resmi.
+- **Informasi yang ditahan:** Nama pelanggan resmi pada meter lama sebelum 2012 dan pelanggan resmi pada dua rumah lainnya di halaman belakang.
 - **Perubahan setelah adegan:** Salma mencatat nomor meter yang masih terbaca sebagian.
 - **Detail wajib:** Meter lama, jalur kabel.
 - **Ruang pengembangan prosa:** Jangan menyimpulkan tahun pemasangan dari kondisi kabel.
