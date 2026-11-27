@@ -13,7 +13,7 @@
 - **Tujuan tokoh POV:** Memeriksa catatan Niken dan membandingkannya dengan lampiran.
 - **Konflik/tekanan/pertanyaan:** Memberi petunjuk tentang maksud sementara dan keterlibatan Hadi.
 - **Hubungan dengan bab sebelumnya:** Niken menemukan buku agenda kerja yang mencatat penundaan relokasi.
-- **Jembatan menuju bab berikutnya:** Bab 13 menunjukkan bahwa janji itu tidak pernah dituntaskan.
+- **Jembatan menuju bab berikutnya:** Bab 13 menguji kesinambungan hunian warga pasca-2011 dan memastikan belum ada perubahan status peta yang tercatat bagi mereka, tanpa menyimpulkan bahwa tindak lanjut tidak pernah dilakukan hanya karena ketiadaan catatan.
 
 ## Adegan 1 — Buku agenda
 - **Lokasi dan waktu:** 14 Agustus, 10.00
@@ -45,7 +45,7 @@
 - **Keadaan tokoh setelah bab:** Salma memiliki satu informasi, keputusan, atau konsekuensi baru yang mengubah langkah berikutnya.
 - **Perubahan konflik/hubungan:** Memberi petunjuk tentang maksud sementara dan keterlibatan Hadi.
 - **Fakta baru yang menjadi kanon:** Mengikuti detail wajib dan perubahan adegan di atas; dugaan tidak boleh dinaikkan menjadi fakta.
-- **Pertanyaan/ketegangan yang dibawa ke depan:** Bab 13 menunjukkan bahwa janji itu tidak pernah dituntaskan.
+- **Pertanyaan/ketegangan yang dibawa ke depan:** Bab 13 menguji kesinambungan hunian warga pasca-2011 dan memastikan belum ada perubahan status peta yang tercatat bagi mereka, tanpa menyimpulkan bahwa tindak lanjut tidak pernah dilakukan hanya karena ketiadaan catatan.
 - **Hal yang tidak boleh disimpulkan pembaca:** Temuan pemetaan tidak sama dengan kepemilikan tanah; kesaksian dan dokumen memiliki batas pembuktian.
 
 ## Batasan
