@@ -13,7 +13,7 @@
   - Ia tidak hafal tahun pasti kejadian tersebut (hanya menyebut "sepuluh atau dua belas tahun lewat").
   - Setahu dia, ketiga keluarga di belakang sempat diminta pindah sementara selama pekerjaan saluran.
   - Ia tidak yakin apakah keluarga-keluarga itu kembali sebelum atau sesudah tembok penahan yang sekarang dibangun karena saat itu ia belum menjadi ketua RT dan sering keluar kota.
-  - Ia pernah melihat Hadi (ayah Salma) beberapa kali membawa berkas ke kelurahan setelah banjir tersebut, namun ia sama sekali tidak mengetahui isi berkas itu maupun urusan surat-menyuratnya.
+  - Ia pernah melihat Hadi (ayah Salma) beberapa kali membawa berkas ke kelurahan setelah banjir tersebut, namun ia sama sekali tidak mengetahui isi berkas itu (hanya pernah melihat Hadi lewat membawa map).
 - Pak Bowo menyarankan Salma berbicara dengan Bu Rukmini (warga lama yang tinggal tiga pintu dari ujung gang), lalu pamit menuju balai warga.
 
 ### Adegan 2 — Kesaksian yang berbeda (09.30–11.00)
@@ -28,7 +28,7 @@
 ## Perbedaan Kedua Kesaksian
 - **Status perpindahan warga pascabanjir:** Pak Bowo mengingat ketiga keluarga sempat pindah sementara; Bu Rukmini mengingat satu keluarga (keluarga Sari) tidak pernah benar-benar pindah dan tetap bolak-balik tidur di rumah.
 - **Waktu kejadian:** Pak Bowo menyebut secara kasar "sepuluh atau dua belas tahun lewat"; Bu Rukmini menyebut 2009 lalu ragu menjadi 2013. Keduanya tidak dapat memastikan tahun yang akurat.
-- **Kedua perbedaan ini wajar dan manusiawi** (berasal dari sudut pandang dan keterbatasan ingatan masing-masing, bukan kebohongan).
+- Salma tidak memiliki alasan untuk menganggap salah satu saksi sengaja berbohong; perbedaan itu tampak wajar dari sudut pandang dan keterbatasan ingatan masing-masing.
 
 ## Perubahan Status Karakter
 
@@ -40,7 +40,7 @@
 
 ## Fakta Baru yang Menjadi Kanon
 - Pak Bowo memberikan kesaksian lisan bahwa setelah banjir besar dulu ada pekerjaan alat berat di saluran ujung gang, menurut ingatannya tiga keluarga sempat pindah sementara (urutan kembali vs pembangunan tembok tidak pasti), dan ia pernah melihat Hadi membawa berkas ke kelurahan tanpa mengetahui isinya.
-- Bu Rukmini memberikan kesaksian lisan yang berbeda: menurut ingatannya satu keluarga (keluarga Sari) tidak pernah benar-benar pindah, ia mengenali Sari pada foto, keliru/ragu menyebut tahun (2009 atau 2013), dan tidak tahu proses administrasi peta.
+- Bu Rukmini memberikan kesaksian lisan yang berbeda: menurut ingatannya satu keluarga (keluarga Sari) tidak pernah benar-benar pindah, ia mengenali rumah Sari dan tetangganya dalam foto, keliru/ragu menyebut tahun (2009 atau 2013), dan tidak tahu proses administrasi peta.
 - Salma tidak memaksa kedua saksi sepakat dan memutuskan memeriksa dokumen administrasi di kantor kelurahan sebagai pembanding.
 
 ## Informasi yang Masih Belum Terverifikasi (Bukan Fakta Pasti)
