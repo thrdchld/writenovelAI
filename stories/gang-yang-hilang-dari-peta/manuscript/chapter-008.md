@@ -22,7 +22,7 @@ Pak Bowo menggaruk belakang telinganya. "Sudah belasan tahun lalu, Mbak. Sekitar
 
 Salma mencatat cepat di buku lapangannya, memisahkan antara hal yang diingat Pak Bowo dan bagian yang ia akui tidak yakin. "Kalau soal pencatatan waktu itu, Pak—di pinggir foto ini ada ayah saya, Pak Hadi. Bapak sempat tahu ayah saya mengurus apa waktu itu?"
 
-Wajah Pak Bowo langsung melunak begitu nama Hadi disebut. "Iya, almarhum Pak Hadi dulu memang rajin bantu urusan lingkungan. Saya pernah lihat beliau beberapa kali membawa berkas ke kelurahan setelah banjir itu, mungkin urusan laporan warga atau perbaikan saluran. Tapi saya tidak pernah tahu isi berkasnya apa, Mbak. Urusan surat-menyurat dulu beliau yang pegang, saya tidak ikut campur."
+Wajah Pak Bowo langsung melunak begitu nama Hadi disebut. "Iya, almarhum Pak Hadi dulu memang rajin bantu urusan lingkungan. Saya pernah lihat beliau beberapa kali membawa berkas ke kelurahan setelah banjir itu, mungkin urusan laporan warga atau perbaikan saluran. Tapi saya tidak pernah tahu isi berkasnya apa, Mbak. Saya cuma lihat beliau lewat bawa map, tidak pernah ikut campur."
 
 Salma tidak mengejar lebih jauh. Jelas Pak Bowo memang hanya mengingat permukaan kejadian.
 
@@ -50,4 +50,4 @@ Salma tidak mencoba mempertemukan versi Bu Rukmini dengan cerita Pak Bowo, apala
 
 Menjelang pukul sebelas, Salma duduk sebentar lagi di bangku warung yang mulai lengang, membaca ulang dua halaman catatannya. Di sisi kiri ada versi Pak Bowo: tiga keluarga pindah sementara, urutan pembangunan tembok tidak pasti, dan Hadi pernah terlihat membawa berkas ke kelurahan tanpa diketahui isinya. Di sisi kanan ada versi Bu Rukmini: satu keluarga tidak pernah benar-benar pindah, tahun kejadian meleset antara 2009 dan 2013, tanpa pengetahuan soal administrasi.
 
-Keduanya tidak sedang berbohong; mereka hanya mengingat peristiwa yang sama dari tempat berdiri yang berbeda. Kesaksian mereka membantu memberi gambaran kasar bahwa banjir dan pekerjaan saluran memang mengubah bentuk ujung gang, tetapi ingatan warga jelas tidak cukup untuk memastikan tahun, urutan tembok, maupun apa yang sebenarnya dibawa ayahnya ke kantor kelurahan. Jika ia ingin menguji apa yang tercatat secara resmi, besok pagi ia harus datang sendiri ke kelurahan dan mencari arsip pembaruan wilayah sebagai pembanding.
+Salma tidak memiliki alasan untuk menganggap salah satu dari mereka sengaja berbohong; keduanya tampak hanya mengingat peristiwa yang sama dari sudut pandang masing-masing. Kesaksian mereka membantu memberi gambaran kasar bahwa banjir dan pekerjaan saluran memang mengubah bentuk ujung gang, tetapi ingatan warga jelas tidak cukup untuk memastikan tahun, urutan tembok, maupun apa yang sebenarnya dibawa ayahnya ke kantor kelurahan. Jika ia ingin menguji apa yang tercatat secara resmi, besok pagi ia harus datang sendiri ke kelurahan dan mencari arsip pembaruan wilayah sebagai pembanding.
